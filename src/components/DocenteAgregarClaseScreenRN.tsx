@@ -144,7 +144,7 @@ export default function DocenteAgregarClaseScreenRN({
             setDiaRaw(t);
             touchField();
           }}
-          placeholder="Ej. Lunes, Mi, Viernes"
+          placeholder="Ej. lunes, martes, miercoles, jueves, viernes, sabados"
           placeholderTextColor="#78716c"
           style={[styles.input, errs.dia && styles.inputErr]}
         />

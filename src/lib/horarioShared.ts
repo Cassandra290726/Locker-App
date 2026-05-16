@@ -46,6 +46,18 @@ export function normalizarDiaEntrada(raw: string): DiaCalendarioKey | null {
   const t = stripAccents(raw.trim().toLowerCase());
   if (!t) return null;
 
+  const nombreCompleto: Partial<Record<string, DiaCalendarioKey>> = {
+    lunes: "L",
+    martes: "M",
+    miercoles: "Mi",
+    jueves: "J",
+    viernes: "V",
+    sabado: "S",
+    sabados: "S",
+  };
+  const porNombre = nombreCompleto[t];
+  if (porNombre) return porNombre;
+
   const headers = COLUMNAS_DIA.map((c) => c.key);
   if (headers.includes(t as DiaCalendarioKey)) return t as DiaCalendarioKey;
 
@@ -61,6 +73,11 @@ export function normalizarDiaEntrada(raw: string): DiaCalendarioKey | null {
   if (t.startsWith("dom")) return "D";
 
   return null;
+}
+
+/** Lunes a sábado (Domingo no se usa para registrar clases). */
+export function esDiaHabilDocente(d: DiaCalendarioKey): boolean {
+  return d !== "D";
 }
 
 /** HH:mm 24 h */
@@ -114,11 +131,14 @@ export function validarFormularioClase(input: {
     err.materia = "Escribe la materia.";
   }
 
-  if (!normalizarDiaEntrada(input.diaRaw)) {
+  const diaNorm = normalizarDiaEntrada(input.diaRaw);
+  if (!diaNorm) {
     err.dia =
       !input.diaRaw.trim()
         ? "Indica el día."
-        : "Día no reconocido (ej. Lunes, Mi, Viernes).";
+        : "Día no reconocido (ej. lunes, martes, miercoles, jueves, viernes, sabados).";
+  } else if (!esDiaHabilDocente(diaNorm)) {
+    err.dia = "Usa un día de lunes a sábado.";
   }
 
   if (!formatoHoraValido(input.horaInicio)) {

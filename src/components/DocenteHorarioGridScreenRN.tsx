@@ -22,7 +22,7 @@ import {
   type DiaCalendarioKey,
 } from "@/lib/horarioShared";
 
-type GridMode = "idle" | "delete" | "edit";
+type GridMode = "idle" | "delete";
 
 type Props = {
   onBack: () => void;
@@ -37,6 +37,7 @@ export default function DocenteHorarioGridScreenRN({
 }: Props) {
   const [clases, setClases] = useState<DocenteClaseGuardada[]>([]);
   const [mode, setMode] = useState<GridMode>("idle");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const reload = useCallback(async () => {
@@ -61,28 +62,49 @@ export default function DocenteHorarioGridScreenRN({
     );
   }
 
-  async function tapClase(c: DocenteClaseGuardada) {
-    if (mode === "idle") return;
-    if (mode === "edit") {
-      setMode("idle");
-      onEditClase(c.id);
+  function tapClase(c: DocenteClaseGuardada) {
+    if (mode === "idle") {
+      setSelectedId((prev) => (prev === c.id ? null : c.id));
       return;
     }
     if (mode === "delete") {
       const ok =
         typeof window !== "undefined"
-          ? window.confirm(`¿Eliminar «${c.materia}» de tu horario?`)
+          ? window.confirm(`¿Eliminar solo esta clase: «${c.materia}»?`)
           : false;
       if (!ok) return;
-      const res = await eliminarClaseDocente(c.id);
-      if (res.ok) void reload();
-      setMode("idle");
+      void (async () => {
+        const res = await eliminarClaseDocente(c.id);
+        if (res.ok) {
+          setSelectedId((cur) => (cur === c.id ? null : cur));
+          await reload();
+        }
+      })();
     }
   }
 
+  function onPencil() {
+    if (!selectedId) {
+      if (typeof window !== "undefined") {
+        window.alert(
+          "Selecciona una clase tocando su cuadro en el horario y luego usa el lápiz para editarla.",
+        );
+      }
+      return;
+    }
+    setMode("idle");
+    onEditClase(selectedId);
+  }
+
+  function setModeWithClear(next: GridMode) {
+    setMode(next);
+    if (next === "delete") setSelectedId(null);
+  }
+
   function bannerText(): string | null {
-    if (mode === "delete") return "Toca una clase para eliminarla.";
-    if (mode === "edit") return "Toca una clase para editarla.";
+    if (mode === "delete")
+      return "Toca el cuadro de la clase que quieres eliminar (solo esa entrada).";
+    if (selectedId) return "Clase seleccionada. Toca el lápiz para editarla.";
     return null;
   }
 
@@ -137,33 +159,39 @@ export default function DocenteHorarioGridScreenRN({
                   </View>
                   {COLUMNAS_DIA.map((col) => {
                     const lista = clasesEnCelda(col.key, franja);
-                    const interactive = mode !== "idle" && lista.length > 0;
+                    const interactive = mode === "delete" || mode === "idle";
                     const celda =
                       lista.length > 0 ? (
-                        lista.map((c) =>
-                          interactive ? (
-                            <TouchableOpacity
-                              key={c.id}
-                              style={styles.chip}
-                              activeOpacity={0.75}
-                              onPress={() => void tapClase(c)}
-                            >
+                        lista.map((c) => {
+                          const selected = selectedId === c.id;
+                          const chipInner = (
+                            <>
                               <Text style={styles.chipMat}>{c.materia}</Text>
                               <Text style={styles.chipSal}>{c.salon}</Text>
                               <Text style={styles.chipHor}>
                                 {c.horaInicio} – {c.horaFinal}
                               </Text>
+                            </>
+                          );
+                          const chipStyle = [
+                            styles.chip,
+                            selected && styles.chipSelected,
+                          ];
+                          return interactive ? (
+                            <TouchableOpacity
+                              key={`${c.id}-${col.key}-${fi}`}
+                              style={chipStyle}
+                              activeOpacity={0.75}
+                              onPress={() => tapClase(c)}
+                            >
+                              {chipInner}
                             </TouchableOpacity>
                           ) : (
-                            <View key={c.id} style={styles.chip}>
-                              <Text style={styles.chipMat}>{c.materia}</Text>
-                              <Text style={styles.chipSal}>{c.salon}</Text>
-                              <Text style={styles.chipHor}>
-                                {c.horaInicio} – {c.horaFinal}
-                              </Text>
+                            <View key={`${c.id}-${col.key}-${fi}`} style={chipStyle}>
+                              {chipInner}
                             </View>
-                          ),
-                        )
+                          );
+                        })
                       ) : (
                         <Text style={styles.slotEmpty}> </Text>
                       );
@@ -187,7 +215,7 @@ export default function DocenteHorarioGridScreenRN({
         <TouchableOpacity
           style={[styles.footerBtn, styles.btnAgregar]}
           onPress={() => {
-            setMode("idle");
+            setModeWithClear("idle");
             onAgregarClase();
           }}
           activeOpacity={0.85}
@@ -200,7 +228,9 @@ export default function DocenteHorarioGridScreenRN({
             styles.btnEliminar,
             mode === "delete" && styles.btnEliminarOn,
           ]}
-          onPress={() => setMode((m) => (m === "delete" ? "idle" : "delete"))}
+          onPress={() =>
+            setModeWithClear(mode === "delete" ? "idle" : "delete")
+          }
           activeOpacity={0.85}
         >
           <Text
@@ -213,9 +243,12 @@ export default function DocenteHorarioGridScreenRN({
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.footerBtnIcon, mode === "edit" && styles.btnEditOn]}
-          onPress={() => setMode((m) => (m === "edit" ? "idle" : "edit"))}
-          accessibilityLabel="Editar clase"
+          style={[
+            styles.footerBtnIcon,
+  selectedId && mode === "idle" && styles.btnEditReady,
+          ]}
+          onPress={onPencil}
+          accessibilityLabel="Editar clase seleccionada"
           activeOpacity={0.85}
         >
           <Text style={styles.iconPencil}>✏️</Text>
@@ -341,6 +374,14 @@ const styles = RNStyleSheet.create({
   chip: {
     marginBottom: 2,
     gap: 2,
+    borderRadius: 6,
+    padding: 4,
+    borderWidth: 2,
+    borderColor: "transparent",
+  },
+  chipSelected: {
+    borderColor: "#2563eb",
+    backgroundColor: "rgba(37, 99, 235, 0.08)",
   },
   chipMat: {
     fontSize: 11,
@@ -414,9 +455,9 @@ const styles = RNStyleSheet.create({
   footerBtnTextEliminarOn: {
     color: "#991b1b",
   },
-  btnEditOn: {
-    borderColor: "#292524",
-    backgroundColor: "#e7e5e4",
+  btnEditReady: {
+    borderColor: "#2563eb",
+    backgroundColor: "#e0ecff",
   },
   iconPencil: {
     fontSize: 20,

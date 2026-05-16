@@ -8,6 +8,7 @@ import OptionsScreenRN from "@/components/OptionsScreenRN";
 import RoleSelectScreenRN from "@/components/RoleSelectScreenRN";
 import DocenteAgendaMenuScreenRN from "@/components/DocenteAgendaMenuScreenRN";
 import DocenteAgregarClaseScreenRN from "@/components/DocenteAgregarClaseScreenRN";
+import DocenteNotasScreenRN from "@/components/DocenteNotasScreenRN";
 import DocenteHorarioGridScreenRN from "@/components/DocenteHorarioGridScreenRN";
 import DocenteHubScreenRN from "@/components/DocenteHubScreenRN";
 import DocenteSignupScreenRN from "@/components/DocenteSignupScreenRN";
@@ -29,7 +30,8 @@ type Phase =
   | "docente_main"
   | "docente_agenda"
   | "docente_agregar_clase"
-  | "docente_horario_grid";
+  | "docente_horario_grid"
+  | "docente_notas";
 
 type ClaseFormCtx = {
   cancelTo: "agenda" | "grid";
@@ -145,7 +147,7 @@ function SplashGateInner() {
           setClaseFormCtx({ cancelTo: "agenda", editingId: null });
           setPhase("docente_agregar_clase");
         }}
-        onNotas={() => {}}
+        onNotas={() => setPhase("docente_notas")}
       />
     );
   }
@@ -181,6 +183,12 @@ function SplashGateInner() {
           setPhase("docente_agregar_clase");
         }}
       />
+    );
+  }
+
+  if (displayPhase === "docente_notas") {
+    return (
+      <DocenteNotasScreenRN onBack={() => setPhase("docente_agenda")} />
     );
   }
 

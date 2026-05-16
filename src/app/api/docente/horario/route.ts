@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getSessionFromCookies } from "@/lib/session";
 import {
+  esDiaHabilDocente,
   formatoHoraValido,
   normalizarDiaEntrada,
   parseHoraAMinutos,
@@ -47,6 +48,7 @@ function validateClasePayload(p: {
 }): string | null {
   if (!p.materia.trim()) return "Falta la materia.";
   if (!p.dia) return "El día no es válido.";
+  if (!esDiaHabilDocente(p.dia)) return "Usa un día de lunes a sábado.";
   if (!p.salon.trim()) return "Indica salón y edificio.";
   if (!formatoHoraValido(p.horaInicio))
     return "Hora de inicio inválida (usa HH:mm, 24 h).";

@@ -1,72 +1,67 @@
-export type UserRole = "docente" | "alumno";
+import type {
+  DocenteProfile,
+  SessionUser,
+  UserRole,
+} from "@/lib/authShared";
 
-export type StoredAccount = {
-  password: string;
-  role: UserRole;
-};
+export type { DocenteProfile, SessionUser, UserRole };
+export {
+  getEmailInputError,
+  getMatriculaInputError,
+  getPasswordInputError,
+  getPasswordMismatchError,
+  isValidEmailFormat,
+  isValidPassword,
+  MAX_DOCENTE_SCHOOLS,
+  MAX_EMAIL_LENGTH,
+  MAX_PASSWORD_LENGTH,
+  MIN_PASSWORD_LENGTH,
+  normalizeEscuelaNombre,
+  tieneParesEscuelaMatriculaDuplicados,
+} from "@/lib/authShared";
 
-const ACCOUNTS_KEY = "locker_accounts_v1";
-const SESSION_KEY = "locker_session_v1";
-
-function readAccounts(): Record<string, StoredAccount> {
-  if (typeof window === "undefined") return {};
-  try {
-    const raw = window.localStorage.getItem(ACCOUNTS_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as Record<string, StoredAccount>;
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch {
-    return {};
-  }
+export async function fetchSession(): Promise<SessionUser | null> {
+  const res = await fetch("/api/auth/session", { credentials: "include" });
+  if (!res.ok) return null;
+  const data = (await res.json()) as { user: SessionUser | null };
+  return data.user;
 }
 
-function writeAccounts(next: Record<string, StoredAccount>) {
-  window.localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(next));
+export async function login(
+  email: string,
+  password: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const res = await fetch("/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ email, password }),
+  });
+  const data = (await res.json()) as { ok?: boolean; error?: string };
+  if (res.ok && data.ok) return { ok: true };
+  return { ok: false, error: data.error ?? "LOGIN_FAILED" };
 }
 
-export function getStoredSessionEmail(): string | null {
-  if (typeof window === "undefined") return null;
-  const e = window.localStorage.getItem(SESSION_KEY);
-  return e && e.length > 0 ? e : null;
-}
-
-export function setStoredSessionEmail(email: string) {
-  window.localStorage.setItem(SESSION_KEY, email.trim().toLowerCase());
-}
-
-export function clearStoredSession() {
-  window.localStorage.removeItem(SESSION_KEY);
-}
-
-export function getAccount(email: string): StoredAccount | undefined {
-  const key = email.trim().toLowerCase();
-  return readAccounts()[key];
-}
-
-export function registerAccount(
+export async function register(
   email: string,
   password: string,
   role: UserRole,
-) {
-  const key = email.trim().toLowerCase();
-  const accounts = readAccounts();
-  if (accounts[key]) {
-    throw new Error("EMAIL_TAKEN");
-  }
-  accounts[key] = { password, role };
-  writeAccounts(accounts);
+  docenteProfile?: DocenteProfile,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const res = await fetch("/api/auth/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ email, password, role, docenteProfile }),
+  });
+  const data = (await res.json()) as { ok?: boolean; error?: string };
+  if (res.ok && data.ok) return { ok: true };
+  return { ok: false, error: data.error ?? "REGISTER_FAILED" };
 }
 
-/** Formato básico: @ presente, partes razonables y longitud total acotada. */
-export function isValidEmailFormat(email: string): boolean {
-  const t = email.trim();
-  if (t.length < 6 || t.length > 254) return false;
-  if (!t.includes("@")) return false;
-  const at = t.indexOf("@");
-  const local = t.slice(0, at);
-  const domain = t.slice(at + 1);
-  if (local.length < 1 || domain.length < 3) return false;
-  if (!domain.includes(".")) return false;
-  if (/\s/.test(t)) return false;
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t);
+export async function logout(): Promise<void> {
+  await fetch("/api/auth/logout", {
+    method: "POST",
+    credentials: "include",
+  });
 }

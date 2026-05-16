@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Image,
   StyleSheet as RNStyleSheet,
   Text,
   TouchableOpacity,
@@ -27,6 +28,13 @@ export default function RoleSelectScreenRN({ onBack, onPickRole }: Props) {
       </TouchableOpacity>
 
       <View style={styles.center}>
+        <Image
+          accessibilityLabel="Logo Locker"
+          alt="Logo Locker"
+          source={{ uri: "/logo.png" }}
+          style={styles.logo}
+          resizeMode="contain"
+        />
         <Text style={styles.welcome}>Bienvenido</Text>
         <Text style={styles.subtitle}>Elige tu ocupación</Text>
 
@@ -78,25 +86,32 @@ const styles = RNStyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingBottom: 48,
+    width: "100%",
+  },
+  logo: {
+    width: "46%",
+    maxWidth: 200,
+    height: 120,
+    marginBottom: 20,
   },
   welcome: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: "700",
     color: "#292524",
     textAlign: "center",
-    marginBottom: 6,
+    marginBottom: 4,
   },
   subtitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "600",
     color: "#44403c",
     textAlign: "center",
-    marginBottom: 56,
+    marginBottom: 48,
   },
   buttons: {
     width: "100%",
     maxWidth: 320,
-    gap: 36,
+    gap: 48,
     alignItems: "stretch",
   },
   roleBtn: {

@@ -7,6 +7,7 @@ export default function SplashScreenRN() {
     <View style={styles.root}>
       <Image
         accessibilityLabel="Logo Locker"
+        alt="Logo Locker"
         source={{ uri: "/logo.png" }}
         style={styles.logo}
         resizeMode="contain"

@@ -10,11 +10,16 @@ import {
   View,
 } from "react-native-web";
 
-import { getAccount, isValidEmailFormat, setStoredSessionEmail } from "@/lib/lockerAuth";
+import {
+  fetchSession,
+  isValidEmailFormat,
+  login,
+  type SessionUser,
+} from "@/lib/lockerAuth";
 
 type Props = {
   onCreateAccount: () => void;
-  onLoginSuccess: () => void;
+  onLoginSuccess: (user: SessionUser) => void;
 };
 
 export default function LoginScreenRN({
@@ -23,40 +28,41 @@ export default function LoginScreenRN({
 }: Props) {
   const [correo, setCorreo] = useState("");
   const [contrasena, setContrasena] = useState("");
-  const [emailHighlight, setEmailHighlight] = useState(false);
-  const [passHighlight, setPassHighlight] = useState(false);
+  const [fieldHighlight, setFieldHighlight] = useState(false);
+  const [credError, setCredError] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const tryNext = () => {
-    setEmailHighlight(false);
-    setPassHighlight(false);
+  const tryNext = async () => {
+    setFieldHighlight(false);
+    setCredError(false);
 
     const e = correo.trim();
     const p = contrasena;
 
     if (!e || !p) {
-      setEmailHighlight(true);
-      setPassHighlight(true);
+      setFieldHighlight(true);
       return;
     }
 
     if (!isValidEmailFormat(e)) {
-      setEmailHighlight(true);
+      setFieldHighlight(true);
       return;
     }
 
-    const acc = getAccount(e);
-    if (!acc) {
-      setEmailHighlight(true);
+    setLoading(true);
+    const result = await login(e, p);
+    setLoading(false);
+
+    if (!result.ok) {
+      setCredError(true);
+      setFieldHighlight(true);
       return;
     }
 
-    if (acc.password !== p) {
-      setPassHighlight(true);
-      return;
+    const session = await fetchSession();
+    if (session) {
+      onLoginSuccess(session);
     }
-
-    setStoredSessionEmail(e);
-    onLoginSuccess();
   };
 
   return (
@@ -64,6 +70,7 @@ export default function LoginScreenRN({
       <View style={styles.top}>
         <Image
           accessibilityLabel="Logo Locker"
+          alt="Logo Locker"
           source={{ uri: "/logo.png" }}
           style={styles.logo}
           resizeMode="contain"
@@ -75,26 +82,31 @@ export default function LoginScreenRN({
           value={correo}
           onChangeText={(t: string) => {
             setCorreo(t);
-            setEmailHighlight(false);
+            setFieldHighlight(false);
+            setCredError(false);
           }}
           placeholder="Correo"
           placeholderTextColor="#78716c"
           autoCapitalize="none"
           autoCorrect={false}
           keyboardType="email-address"
-          style={[styles.input, emailHighlight && styles.inputError]}
+          style={[styles.input, fieldHighlight && styles.inputError]}
         />
         <TextInput
           value={contrasena}
           onChangeText={(t: string) => {
             setContrasena(t);
-            setPassHighlight(false);
+            setFieldHighlight(false);
+            setCredError(false);
           }}
           placeholder="Contraseña"
           placeholderTextColor="#78716c"
           secureTextEntry
-          style={[styles.input, passHighlight && styles.inputError]}
+          style={[styles.input, fieldHighlight && styles.inputError]}
         />
+        {credError ? (
+          <Text style={styles.errText}>Credenciales incorrectas.</Text>
+        ) : null}
       </View>
 
       <View style={styles.footer}>
@@ -105,8 +117,15 @@ export default function LoginScreenRN({
         >
           <Text style={styles.btnGhostText}>crear cuenta</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.btnPrimary} onPress={tryNext} activeOpacity={0.85}>
-          <Text style={styles.btnPrimaryText}>siguiente</Text>
+        <TouchableOpacity
+          style={[styles.btnPrimary, loading && styles.btnDisabled]}
+          onPress={() => void tryNext()}
+          activeOpacity={0.85}
+          disabled={loading}
+        >
+          <Text style={styles.btnPrimaryText}>
+            {loading ? "Entrando…" : "siguiente"}
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -156,6 +175,12 @@ const styles = RNStyleSheet.create({
     borderColor: "#FF7F96",
     borderWidth: 2,
   },
+  errText: {
+    color: "#b91c1c",
+    fontSize: 14,
+    width: "100%",
+    maxWidth: 360,
+  },
   footer: {
     flexDirection: "row",
     alignItems: "center",
@@ -185,6 +210,9 @@ const styles = RNStyleSheet.create({
     backgroundColor: "#B6F0FF",
     alignItems: "center",
     justifyContent: "center",
+  },
+  btnDisabled: {
+    opacity: 0.6,
   },
   btnPrimaryText: {
     fontSize: 15,

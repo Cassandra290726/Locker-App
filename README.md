@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Locker App
 
-## Getting Started
+Aplicación web educativa (docentes y alumnos) para registro, inicio de sesión y acceso a opciones (agenda, perfil). UI con **react-native-web** sobre **Next.js App Router**.
 
-First, run the development server:
+## Stack
+
+- Next.js 16, React 19, TypeScript
+- react-native-web (pantallas tipo móvil)
+- Tailwind CSS 4 (páginas protegidas y layout)
+- Autenticación en servidor: bcrypt + JWT en cookie httpOnly (`jose`)
+
+## Requisitos
+
+- Node.js 20+
+- npm
+
+## Configuración
+
+```bash
+npm install
+cp .env.example .env.local
+# Edita SESSION_SECRET en .env.local (producción: valor aleatorio largo)
+```
+
+## Desarrollo
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abre [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Rutas
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Ruta | Descripción |
+|------|-------------|
+| `/` | Flujo principal (splash, login, registro, opciones) |
+| `/login` | Redirige a `/?phase=login` |
+| `/crear-cuenta` | Redirige a `/?phase=role` |
+| `/agenda` | Protegida — requiere sesión |
+| `/perfil` | Protegida — requiere sesión |
 
-## Learn More
+Las cuentas se guardan en `data/accounts.json` (creado en runtime, no versionado). Las contraseñas se almacenan con **hash bcrypt**; la sesión va en cookie **httpOnly**.
 
-To learn more about Next.js, take a look at the following resources:
+## Scripts
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run dev    # servidor de desarrollo
+npm run build  # build de producción
+npm run start  # servir build
+npm run lint   # ESLint
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Seguridad
 
-## Deploy on Vercel
+- **Demo / desarrollo:** adecuado para prototipos locales.
+- **Producción:** define `SESSION_SECRET` fuerte; despliega con HTTPS (p. ej. Vercel).
+- No uses contraseñas reales hasta tener base de datos gestionada, verificación de email y recuperación de cuenta.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Migración desde localStorage
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Versiones anteriores guardaban cuentas en `localStorage` del navegador. La auth actual es **solo en servidor**; hay que **volver a registrarse** tras actualizar.
+
+## Estructura
+
+```
+src/
+  app/           # Rutas Next.js + API auth
+  components/    # Pantallas RN-web + SplashGate
+  lib/           # authShared, authServer, session, lockerAuth (cliente)
+  middleware.ts  # Protege /agenda y /perfil
+```

@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 
 import {
+  isValidAlumnoProfile,
   isValidDocenteProfile,
   isValidEmailFormat,
   isValidPassword,
   normalizeEmail,
+  type AlumnoProfile,
   type DocenteProfile,
   type UserRole,
 } from "@/lib/authShared";
@@ -32,12 +34,25 @@ function parseDocenteProfile(raw: unknown): DocenteProfile | null {
   return { nombre, escuelas };
 }
 
+function parseAlumnoProfile(raw: unknown): AlumnoProfile | null {
+  if (!raw || typeof raw !== "object") return null;
+  const p = raw as Record<string, unknown>;
+  return {
+    nombre: typeof p.nombre === "string" ? p.nombre.trim() : "",
+    institucion: typeof p.institucion === "string" ? p.institucion.trim() : "",
+    municipio: typeof p.municipio === "string" ? p.municipio.trim() : "",
+    plantel: typeof p.plantel === "string" ? p.plantel.trim() : "",
+    turno: typeof p.turno === "string" ? p.turno.trim() : "",
+  };
+}
+
 export async function POST(request: Request) {
   let body: {
     email?: string;
     password?: string;
     role?: string;
     docenteProfile?: unknown;
+    alumnoProfile?: unknown;
   };
   try {
     body = await request.json();
@@ -58,6 +73,7 @@ export async function POST(request: Request) {
   }
 
   let docenteProfile: DocenteProfile | undefined;
+  let alumnoProfile: AlumnoProfile | undefined;
   if (role === "docente") {
     const parsed = parseDocenteProfile(body.docenteProfile);
     if (!parsed || !isValidDocenteProfile(parsed)) {
@@ -65,9 +81,22 @@ export async function POST(request: Request) {
     }
     docenteProfile = parsed;
   }
+  if (role === "alumno") {
+    const parsed = parseAlumnoProfile(body.alumnoProfile);
+    if (!parsed || !isValidAlumnoProfile(parsed)) {
+      return NextResponse.json({ ok: false, error: "INVALID_PROFILE" }, { status: 400 });
+    }
+    alumnoProfile = parsed;
+  }
 
   try {
-    await registerAccount(email, password, role as UserRole, docenteProfile);
+    await registerAccount(
+      email,
+      password,
+      role as UserRole,
+      docenteProfile,
+      alumnoProfile,
+    );
   } catch (err) {
     if (err instanceof Error && err.message === "EMAIL_TAKEN") {
       return NextResponse.json({ ok: false, error: "EMAIL_TAKEN" }, { status: 409 });

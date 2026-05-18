@@ -11,6 +11,10 @@ import {
 } from "react-native-web";
 
 import { actualizarNotaApi, crearNotaApi } from "@/lib/notasClient";
+import {
+  actualizarNotaAlumnoApi,
+  crearNotaAlumnoApi,
+} from "@/lib/alumnoNotasClient";
 import type {
   ItemListaNota,
   NotaCategoria,
@@ -26,6 +30,8 @@ type Props = {
   defaultCategoriaId: string;
   onClose: () => void;
   onSaved: () => void;
+  /** Por defecto usa API docente; alumno pasa `alumno`. */
+  apiMode?: "docente" | "alumno";
 };
 
 function newItem(): ItemListaNota {
@@ -60,7 +66,11 @@ export default function DocenteNotaEditorScreenRN({
   defaultCategoriaId,
   onClose,
   onSaved,
+  apiMode = "docente",
 }: Props) {
+  const crearNota = apiMode === "alumno" ? crearNotaAlumnoApi : crearNotaApi;
+  const actualizarNota =
+    apiMode === "alumno" ? actualizarNotaAlumnoApi : actualizarNotaApi;
   const tipoFijo: TipoNotaDocente = nota ? nota.tipo : tipoInicial;
 
   const [titulo, setTitulo] = useState(() => nota?.titulo ?? "");
@@ -84,7 +94,7 @@ export default function DocenteNotaEditorScreenRN({
       : categorias[0].id;
 
     if (nota) {
-      const res = await actualizarNotaApi(nota.id, {
+      const res = await actualizarNota(nota.id, {
         titulo,
         categoriaId: cat,
         tipo: tipoFijo,
@@ -98,7 +108,7 @@ export default function DocenteNotaEditorScreenRN({
         onClose();
       }
     } else {
-      const res = await crearNotaApi({
+      const res = await crearNota({
         titulo: titulo.trim() || "Sin título",
         categoriaId: cat,
         tipo: tipoFijo,

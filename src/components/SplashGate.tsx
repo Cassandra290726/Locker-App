@@ -3,17 +3,25 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
+import AlumnoAgregarClaseScreenRN from "@/components/AlumnoAgregarClaseScreenRN";
+import AlumnoDocenteHorarioScreenRN from "@/components/AlumnoDocenteHorarioScreenRN";
+import AlumnoDocentePerfilScreenRN from "@/components/AlumnoDocentePerfilScreenRN";
+import AlumnoDocentesListScreenRN from "@/components/AlumnoDocentesListScreenRN";
+import AlumnoHorarioGridScreenRN from "@/components/AlumnoHorarioGridScreenRN";
+import AlumnoHubScreenRN from "@/components/AlumnoHubScreenRN";
+import AlumnoNotasScreenRN from "@/components/AlumnoNotasScreenRN";
+import AlumnoSignupFlowRN from "@/components/AlumnoSignupFlowRN";
 import LoginScreenRN from "@/components/LoginScreenRN";
-import OptionsScreenRN from "@/components/OptionsScreenRN";
-import RoleSelectScreenRN from "@/components/RoleSelectScreenRN";
 import DocenteAgendaMenuScreenRN from "@/components/DocenteAgendaMenuScreenRN";
 import DocenteAgregarClaseScreenRN from "@/components/DocenteAgregarClaseScreenRN";
 import DocenteNotasScreenRN from "@/components/DocenteNotasScreenRN";
 import DocenteHorarioGridScreenRN from "@/components/DocenteHorarioGridScreenRN";
 import DocenteHubScreenRN from "@/components/DocenteHubScreenRN";
 import DocenteSignupScreenRN from "@/components/DocenteSignupScreenRN";
-import SignupCredentialsRN from "@/components/SignupCredentialsRN";
+import RoleSelectScreenRN from "@/components/RoleSelectScreenRN";
 import SplashScreenRN from "@/components/SplashScreenRN";
+import { fetchClasesAlumno } from "@/lib/alumnoHorarioClient";
+import type { DocentePublico } from "@/lib/alumnoDocentesClient";
 import {
   fetchSession,
   logout,
@@ -26,14 +34,25 @@ type Phase =
   | "login"
   | "role"
   | "signup"
-  | "options"
+  | "alumno_main"
+  | "alumno_agregar_clase"
+  | "alumno_horario_grid"
+  | "alumno_notas"
+  | "alumno_docentes"
+  | "alumno_docente_perfil"
+  | "alumno_docente_horario"
   | "docente_main"
   | "docente_agenda"
   | "docente_agregar_clase"
   | "docente_horario_grid"
   | "docente_notas";
 
-type ClaseFormCtx = {
+type AlumnoClaseFormCtx = {
+  cancelTo: "hub" | "grid";
+  editingId: string | null;
+};
+
+type DocenteClaseFormCtx = {
   cancelTo: "agenda" | "grid";
   editingId: string | null;
 };
@@ -49,7 +68,12 @@ function SplashGateInner() {
   const [phase, setPhase] = useState<Phase>("splash");
   const [signupRole, setSignupRole] = useState<UserRole | null>(null);
   const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
-  const [claseFormCtx, setClaseFormCtx] = useState<ClaseFormCtx>({
+  const [claseFormCtx, setClaseFormCtx] = useState<AlumnoClaseFormCtx>({
+    cancelTo: "hub",
+    editingId: null,
+  });
+  const [docenteSel, setDocenteSel] = useState<DocentePublico | null>(null);
+  const [docenteClaseCtx, setDocenteClaseCtx] = useState<DocenteClaseFormCtx>({
     cancelTo: "agenda",
     editingId: null,
   });
@@ -63,7 +87,7 @@ function SplashGateInner() {
       const user = await fetchSession();
       if (user) {
         setSessionUser(user);
-        setPhase(user.role === "docente" ? "docente_main" : "options");
+        setPhase(user.role === "docente" ? "docente_main" : "alumno_main");
         return;
       }
       setPhase(initial ?? "login");
@@ -81,7 +105,7 @@ function SplashGateInner() {
         onCreateAccount={() => setPhase("role")}
         onLoginSuccess={(user) => {
           setSessionUser(user);
-          setPhase(user.role === "docente" ? "docente_main" : "options");
+          setPhase(user.role === "docente" ? "docente_main" : "alumno_main");
         }}
       />
     );
@@ -113,13 +137,108 @@ function SplashGateInner() {
 
   if (displayPhase === "signup" && signupRole === "alumno") {
     return (
-      <SignupCredentialsRN
-        role="alumno"
+      <AlumnoSignupFlowRN
         onBack={() => setPhase("role")}
         onRegistered={(user) => {
           setSessionUser(user);
-          setPhase("options");
+          setPhase("alumno_main");
         }}
+      />
+    );
+  }
+
+  if (displayPhase === "alumno_main") {
+    return (
+      <AlumnoHubScreenRN
+        onBack={async () => {
+          await logout();
+          setSessionUser(null);
+          setSignupRole(null);
+          setPhase("login");
+        }}
+        onRegistrarHorario={async () => {
+          const clases = await fetchClasesAlumno();
+          if (clases.length === 0) {
+            setClaseFormCtx({ cancelTo: "hub", editingId: null });
+            setPhase("alumno_agregar_clase");
+          } else {
+            setPhase("alumno_horario_grid");
+          }
+        }}
+        onNotas={() => setPhase("alumno_notas")}
+        onDocente={() => setPhase("alumno_docentes")}
+      />
+    );
+  }
+
+  if (displayPhase === "alumno_agregar_clase") {
+    return (
+      <AlumnoAgregarClaseScreenRN
+        key={claseFormCtx.editingId ?? "nueva"}
+        editingId={claseFormCtx.editingId}
+        onCancel={() => {
+          const dest = claseFormCtx.cancelTo;
+          setClaseFormCtx({ cancelTo: "hub", editingId: null });
+          setPhase(dest === "hub" ? "alumno_main" : "alumno_horario_grid");
+        }}
+        onSaved={() => {
+          setClaseFormCtx({ cancelTo: "grid", editingId: null });
+          setPhase("alumno_horario_grid");
+        }}
+      />
+    );
+  }
+
+  if (displayPhase === "alumno_horario_grid") {
+    return (
+      <AlumnoHorarioGridScreenRN
+        onBack={() => setPhase("alumno_main")}
+        onAgregarClase={() => {
+          setClaseFormCtx({ cancelTo: "grid", editingId: null });
+          setPhase("alumno_agregar_clase");
+        }}
+        onEditClase={(id) => {
+          setClaseFormCtx({ cancelTo: "grid", editingId: id });
+          setPhase("alumno_agregar_clase");
+        }}
+      />
+    );
+  }
+
+  if (displayPhase === "alumno_notas") {
+    return <AlumnoNotasScreenRN onBack={() => setPhase("alumno_main")} />;
+  }
+
+  if (displayPhase === "alumno_docentes") {
+    return (
+      <AlumnoDocentesListScreenRN
+        onBack={() => setPhase("alumno_main")}
+        onSelectDocente={(d) => {
+          setDocenteSel(d);
+          setPhase("alumno_docente_perfil");
+        }}
+      />
+    );
+  }
+
+  if (displayPhase === "alumno_docente_perfil" && docenteSel) {
+    return (
+      <AlumnoDocentePerfilScreenRN
+        docenteEmail={docenteSel.email}
+        onBack={() => setPhase("alumno_docentes")}
+        onVerHorario={(d) => {
+          setDocenteSel(d);
+          setPhase("alumno_docente_horario");
+        }}
+      />
+    );
+  }
+
+  if (displayPhase === "alumno_docente_horario" && docenteSel) {
+    return (
+      <AlumnoDocenteHorarioScreenRN
+        docenteEmail={docenteSel.email}
+        onBack={() => setPhase("alumno_docente_perfil")}
       />
     );
   }
@@ -144,7 +263,7 @@ function SplashGateInner() {
       <DocenteAgendaMenuScreenRN
         onBack={() => setPhase("docente_main")}
         onAgregarHorario={() => {
-          setClaseFormCtx({ cancelTo: "agenda", editingId: null });
+          setDocenteClaseCtx({ cancelTo: "agenda", editingId: null });
           setPhase("docente_agregar_clase");
         }}
         onNotas={() => setPhase("docente_notas")}
@@ -155,15 +274,15 @@ function SplashGateInner() {
   if (displayPhase === "docente_agregar_clase") {
     return (
       <DocenteAgregarClaseScreenRN
-        key={claseFormCtx.editingId ?? "nueva"}
-        editingId={claseFormCtx.editingId}
+        key={docenteClaseCtx.editingId ?? "nueva"}
+        editingId={docenteClaseCtx.editingId}
         onCancel={() => {
-          const dest = claseFormCtx.cancelTo;
-          setClaseFormCtx({ cancelTo: "agenda", editingId: null });
+          const dest = docenteClaseCtx.cancelTo;
+          setDocenteClaseCtx({ cancelTo: "agenda", editingId: null });
           setPhase(dest === "agenda" ? "docente_agenda" : "docente_horario_grid");
         }}
         onSaved={() => {
-          setClaseFormCtx({ cancelTo: "grid", editingId: null });
+          setDocenteClaseCtx({ cancelTo: "grid", editingId: null });
           setPhase("docente_horario_grid");
         }}
       />
@@ -175,11 +294,11 @@ function SplashGateInner() {
       <DocenteHorarioGridScreenRN
         onBack={() => setPhase("docente_agenda")}
         onAgregarClase={() => {
-          setClaseFormCtx({ cancelTo: "grid", editingId: null });
+          setDocenteClaseCtx({ cancelTo: "grid", editingId: null });
           setPhase("docente_agregar_clase");
         }}
         onEditClase={(id) => {
-          setClaseFormCtx({ cancelTo: "grid", editingId: id });
+          setDocenteClaseCtx({ cancelTo: "grid", editingId: id });
           setPhase("docente_agregar_clase");
         }}
       />
@@ -192,17 +311,7 @@ function SplashGateInner() {
     );
   }
 
-  return (
-    <OptionsScreenRN
-      user={sessionUser}
-      onSignOut={async () => {
-        await logout();
-        setSessionUser(null);
-        setSignupRole(null);
-        setPhase("login");
-      }}
-    />
-  );
+  return <SplashScreenRN />;
 }
 
 export default function SplashGate() {

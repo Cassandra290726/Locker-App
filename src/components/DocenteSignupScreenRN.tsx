@@ -209,7 +209,9 @@ export default function DocenteSignupScreenRN({
     }));
 
     setLoading(true);
-    const result = await register(e, p, "docente", { nombre: n, escuelas });
+    const result = await register(e, p, "docente", {
+      docenteProfile: { nombre: n, escuelas },
+    });
     setLoading(false);
 
     if (!result.ok) {

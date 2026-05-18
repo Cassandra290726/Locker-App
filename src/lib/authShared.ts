@@ -12,8 +12,32 @@ export type DocenteSchool = {
 
 export type DocenteProfile = {
   nombre: string;
+  apellidos?: string;
   escuelas: DocenteSchool[];
+  telefono?: string;
+  materias?: string[];
+  fotoUrl?: string;
 };
+
+export type AlumnoProfile = {
+  nombre: string;
+  institucion: string;
+  municipio: string;
+  plantel: string;
+  turno: string;
+};
+
+export const MUNICIPIOS_BCN = [
+  "Tijuana",
+  "Mexicali",
+  "Ensenada",
+  "Tecate",
+  "Playas de Rosarito",
+  "San Quintín",
+  "San Felipe",
+] as const;
+
+export type MunicipioBcn = (typeof MUNICIPIOS_BCN)[number];
 
 /** Longitud máxima razonable (RFC 5322). */
 export const MAX_EMAIL_LENGTH = 254;
@@ -108,6 +132,54 @@ export function tieneParesEscuelaMatriculaDuplicados(
     seen.add(key);
   }
   return false;
+}
+
+export function getNombreInputError(nombre: string): string | null {
+  if (!nombre.trim()) return "Escribe tu nombre.";
+  return null;
+}
+
+export function getInstitucionInputError(institucion: string): string | null {
+  if (!institucion.trim()) return "Escribe la institución.";
+  return null;
+}
+
+export function getPlantelInputError(plantel: string): string | null {
+  if (!plantel.trim()) return "Escribe el plantel.";
+  return null;
+}
+
+export function getTurnoInputError(turno: string): string | null {
+  if (!turno.trim()) return "Escribe el turno.";
+  return null;
+}
+
+export function getMunicipioInputError(municipio: string): string | null {
+  if (!municipio.trim()) return "Selecciona el municipio.";
+  if (!MUNICIPIOS_BCN.includes(municipio as MunicipioBcn)) {
+    return "Selecciona un municipio válido.";
+  }
+  return null;
+}
+
+export function isValidAlumnoProfile(profile: AlumnoProfile): boolean {
+  if (getNombreInputError(profile.nombre)) return false;
+  if (getInstitucionInputError(profile.institucion)) return false;
+  if (getMunicipioInputError(profile.municipio)) return false;
+  if (getPlantelInputError(profile.plantel)) return false;
+  if (getTurnoInputError(profile.turno)) return false;
+  return true;
+}
+
+export function escuelaCoincideConInstitucion(
+  institucionAlumno: string,
+  escuelasDocente: DocenteSchool[],
+): boolean {
+  const inst = normalizeEscuelaNombre(institucionAlumno);
+  if (!inst) return false;
+  return escuelasDocente.some(
+    (s) => normalizeEscuelaNombre(s.escuela) === inst,
+  );
 }
 
 export function isValidDocenteProfile(profile: DocenteProfile): boolean {

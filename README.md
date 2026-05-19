@@ -30,6 +30,10 @@ npm run dev
 
 Abre [http://localhost:3000](http://localhost:3000).
 
+### Ver en el celular
+
+Guía completa: [docs/MOBILE.md](docs/MOBILE.md) (navegador o Expo Go con la carpeta `LOCKER-APP/`).
+
 ### Rutas
 
 | Ruta | Descripción |

@@ -4,7 +4,6 @@ import path from "path";
 import bcrypt from "bcryptjs";
 
 import {
-  escuelaCoincideConInstitucion,
   normalizeEmail,
   type AlumnoProfile,
   type DocenteProfile,
@@ -105,8 +104,49 @@ function toDocentePublico(
   };
 }
 
+export async function updateDocenteProfile(
+  email: string,
+  patch: Partial<DocenteProfile>,
+): Promise<DocenteProfile | null> {
+  const key = normalizeEmail(email);
+  const accounts = await readAccounts();
+  const acc = accounts[key];
+  if (!acc || acc.role !== "docente" || !acc.docenteProfile) return null;
+
+  const prev = acc.docenteProfile;
+  const next: DocenteProfile = {
+    nombre:
+      typeof patch.nombre === "string" && patch.nombre.trim()
+        ? patch.nombre.trim()
+        : prev.nombre,
+    apellidos:
+      patch.apellidos !== undefined
+        ? patch.apellidos.trim()
+        : prev.apellidos,
+    escuelas: patch.escuelas ?? prev.escuelas,
+    telefono:
+      patch.telefono !== undefined ? patch.telefono.trim() : prev.telefono,
+    materias: patch.materias ?? prev.materias,
+    fotoUrl:
+      patch.fotoUrl !== undefined
+        ? patch.fotoUrl.trim() || undefined
+        : prev.fotoUrl,
+  };
+
+  accounts[key] = { ...acc, docenteProfile: next };
+  await writeAccounts(accounts);
+  return next;
+}
+
+export async function getDocenteProfile(
+  email: string,
+): Promise<DocenteProfile | undefined> {
+  const acc = await getAccount(email);
+  return acc?.docenteProfile;
+}
+
+/** Todos los docentes registrados (sin filtrar por escuela del alumno). */
 export async function listDocentesParaAlumno(
-  institucionAlumno: string,
   searchQuery?: string,
 ): Promise<DocentePublico[]> {
   const accounts = await readAccounts();
@@ -115,11 +155,6 @@ export async function listDocentesParaAlumno(
 
   for (const [email, acc] of Object.entries(accounts)) {
     if (acc.role !== "docente" || !acc.docenteProfile) continue;
-    if (
-      !escuelaCoincideConInstitucion(institucionAlumno, acc.docenteProfile.escuelas)
-    ) {
-      continue;
-    }
     const pub = toDocentePublico(email, acc.docenteProfile);
     if (q) {
       const full = `${pub.nombre} ${pub.apellidos}`.toLowerCase();
@@ -134,18 +169,12 @@ export async function listDocentesParaAlumno(
   return out;
 }
 
-export async function getDocentePublicoSiCoincide(
+export async function getDocentePublico(
   docenteEmail: string,
-  institucionAlumno: string,
 ): Promise<DocentePublico | null> {
   const key = normalizeEmail(docenteEmail);
   const acc = await getAccount(key);
   if (!acc || acc.role !== "docente" || !acc.docenteProfile) return null;
-  if (
-    !escuelaCoincideConInstitucion(institucionAlumno, acc.docenteProfile.escuelas)
-  ) {
-    return null;
-  }
   return toDocentePublico(key, acc.docenteProfile);
 }
 

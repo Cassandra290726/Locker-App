@@ -10,6 +10,7 @@ import {
 } from "react-native-web";
 
 import AlumnoRegistroHeader from "@/components/AlumnoRegistroHeader";
+import PasswordFieldRN from "@/components/PasswordFieldRN";
 import {
   fetchSession,
   getEmailInputError,
@@ -179,7 +180,7 @@ export default function AlumnoSignupFlowRN({ onBack, onRegistered }: Props) {
             />
           </LabeledField>
           <LabeledField label="Contraseña" error={errs.password}>
-            <TextInput
+            <PasswordFieldRN
               value={password}
               onChangeText={(t: string) => {
                 setPassword(t.slice(0, MAX_PASSWORD_LENGTH));
@@ -189,23 +190,21 @@ export default function AlumnoSignupFlowRN({ onBack, onRegistered }: Props) {
                   password2: undefined,
                 }));
               }}
-              secureTextEntry
+              hasError={Boolean(errs.password)}
               maxLength={MAX_PASSWORD_LENGTH}
-              style={[styles.input, errs.password && styles.inputErr]}
-              placeholderTextColor="#78716c"
             />
           </LabeledField>
           <LabeledField label="Confirma contraseña" error={errs.password2}>
-            <TextInput
+            <PasswordFieldRN
               value={password2}
               onChangeText={(t: string) => {
                 setPassword2(t.slice(0, MAX_PASSWORD_LENGTH));
                 setErrs((e) => ({ ...e, password2: undefined }));
               }}
-              secureTextEntry
+              placeholder="Confirma la contraseña"
+              hasError={Boolean(errs.password2)}
               maxLength={MAX_PASSWORD_LENGTH}
-              style={[styles.input, errs.password2 && styles.inputErr]}
-              placeholderTextColor="#78716c"
+              accessibilityLabel="Confirmar contraseña"
             />
           </LabeledField>
         </View>

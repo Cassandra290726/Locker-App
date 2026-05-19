@@ -41,10 +41,28 @@ function stripAccents(s: string): string {
   return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
-/** Interpreta día escrito por el usuario (nombre completo o abreviatura como en la tabla). */
+/** Nombres de día aceptados tal como los escribe el usuario (con o sin acentos / mayúsculas). */
+export const NOMBRES_DIA_VALIDOS = [
+  "Lunes",
+  "Martes",
+  "Miércoles",
+  "Jueves",
+  "Viernes",
+  "Sábado",
+  "Domingo",
+] as const;
+
+/** Interpreta día: Lunes…Domingo (cualquier capitalización) o clave de columna L, M, Mi… */
 export function normalizarDiaEntrada(raw: string): DiaCalendarioKey | null {
-  const t = stripAccents(raw.trim().toLowerCase());
-  if (!t) return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+
+  const porClave = COLUMNAS_DIA.find(
+    (c) => c.key.toLowerCase() === trimmed.toLowerCase(),
+  );
+  if (porClave) return porClave.key;
+
+  const t = stripAccents(trimmed.toLowerCase());
 
   const nombreCompleto: Partial<Record<string, DiaCalendarioKey>> = {
     lunes: "L",
@@ -54,12 +72,15 @@ export function normalizarDiaEntrada(raw: string): DiaCalendarioKey | null {
     viernes: "V",
     sabado: "S",
     sabados: "S",
+    domingo: "D",
   };
   const porNombre = nombreCompleto[t];
   if (porNombre) return porNombre;
 
-  const headers = COLUMNAS_DIA.map((c) => c.key);
-  if (headers.includes(t as DiaCalendarioKey)) return t as DiaCalendarioKey;
+  const porNombreColumna = COLUMNAS_DIA.find(
+    (c) => stripAccents(c.nombre.toLowerCase()) === t,
+  );
+  if (porNombreColumna) return porNombreColumna.key;
 
   if (t === "m") return "M";
   if (t === "mi") return "Mi";
@@ -75,10 +96,13 @@ export function normalizarDiaEntrada(raw: string): DiaCalendarioKey | null {
   return null;
 }
 
-/** Lunes a sábado (Domingo no se usa para registrar clases). */
-export function esDiaHabilDocente(d: DiaCalendarioKey): boolean {
-  return d !== "D";
+/** Todos los días de la semana son válidos para registrar clases. */
+export function esDiaHabilDocente(_d: DiaCalendarioKey): boolean {
+  return true;
 }
+
+export const DIAS_VALIDOS_AYUDA =
+  'Lunes, lunes, Martes, martes, Miércoles, miércoles, Jueves, jueves, Viernes, viernes, Sábado, sábado, Domingo o domingo.';
 
 /** HH:mm 24 h */
 export function parseHoraAMinutos(raw: string): number | null {
@@ -133,12 +157,11 @@ export function validarFormularioClase(input: {
 
   const diaNorm = normalizarDiaEntrada(input.diaRaw);
   if (!diaNorm) {
-    err.dia =
-      !input.diaRaw.trim()
-        ? "Indica el día."
-        : "Día no reconocido (ej. lunes, martes, miercoles, jueves, viernes, sabados).";
+    err.dia = !input.diaRaw.trim()
+      ? "Indica el día."
+      : `Día no reconocido. Usa: ${DIAS_VALIDOS_AYUDA}`;
   } else if (!esDiaHabilDocente(diaNorm)) {
-    err.dia = "Usa un día de lunes a sábado.";
+    err.dia = `Día no válido. Usa: ${DIAS_VALIDOS_AYUDA}`;
   }
 
   if (!formatoHoraValido(input.horaInicio)) {

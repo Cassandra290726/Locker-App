@@ -10,6 +10,7 @@ import {
   View,
 } from "react-native-web";
 
+import PasswordFieldRN from "@/components/PasswordFieldRN";
 import {
   fetchSession,
   isValidEmailFormat,
@@ -92,18 +93,17 @@ export default function LoginScreenRN({
           keyboardType="email-address"
           style={[styles.input, fieldHighlight && styles.inputError]}
         />
-        <TextInput
-          value={contrasena}
-          onChangeText={(t: string) => {
-            setContrasena(t);
-            setFieldHighlight(false);
-            setCredError(false);
-          }}
-          placeholder="Contraseña"
-          placeholderTextColor="#78716c"
-          secureTextEntry
-          style={[styles.input, fieldHighlight && styles.inputError]}
-        />
+        <View style={styles.pwWrap}>
+          <PasswordFieldRN
+            value={contrasena}
+            onChangeText={(t: string) => {
+              setContrasena(t);
+              setFieldHighlight(false);
+              setCredError(false);
+            }}
+            hasError={fieldHighlight}
+          />
+        </View>
         {credError ? (
           <Text style={styles.errText}>Credenciales incorrectas.</Text>
         ) : null}
@@ -157,6 +157,10 @@ const styles = RNStyleSheet.create({
     gap: 14,
     paddingVertical: 12,
     width: "100%",
+  },
+  pwWrap: {
+    width: "100%",
+    maxWidth: 360,
   },
   input: {
     width: "100%",

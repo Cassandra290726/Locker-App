@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native-web";
 
+import PasswordFieldRN from "@/components/PasswordFieldRN";
 import {
   fetchSession,
   getEmailInputError,
@@ -127,31 +128,27 @@ export default function SignupCredentialsRN({
           </Text>
         ) : null}
 
-        <TextInput
+        <PasswordFieldRN
           value={password}
           onChangeText={(t: string) => {
             setPassword(t.slice(0, MAX_PASSWORD_LENGTH));
             clearPwMsgs();
           }}
-          placeholder="Contraseña"
-          placeholderTextColor="#78716c"
-          secureTextEntry
+          hasError={Boolean(passErr)}
           maxLength={MAX_PASSWORD_LENGTH}
-          style={[styles.input, passErr && styles.inputError]}
         />
         {passErr ? <Text style={styles.fieldHint}>{passErr}</Text> : null}
 
-        <TextInput
+        <PasswordFieldRN
           value={password2}
           onChangeText={(t: string) => {
             setPassword2(t.slice(0, MAX_PASSWORD_LENGTH));
             clearPwMsgs();
           }}
           placeholder="Confirma la contraseña"
-          placeholderTextColor="#78716c"
-          secureTextEntry
+          hasError={Boolean(pass2Err)}
           maxLength={MAX_PASSWORD_LENGTH}
-          style={[styles.input, pass2Err && styles.inputError]}
+          accessibilityLabel="Confirmar contraseña"
         />
         {pass2Err ? <Text style={styles.fieldHint}>{pass2Err}</Text> : null}
 

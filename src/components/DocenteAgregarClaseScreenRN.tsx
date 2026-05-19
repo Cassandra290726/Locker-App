@@ -17,6 +17,7 @@ import {
 } from "@/lib/horarioClient";
 import {
   COLUMNAS_DIA,
+  DIAS_VALIDOS_AYUDA,
   hayErroresClase,
   normalizarDiaEntrada,
   validarFormularioClase,
@@ -144,7 +145,7 @@ export default function DocenteAgregarClaseScreenRN({
             setDiaRaw(t);
             touchField();
           }}
-          placeholder="Ej. lunes, martes, miercoles, jueves, viernes, sabados"
+          placeholder={`Ej. ${DIAS_VALIDOS_AYUDA}`}
           placeholderTextColor="#78716c"
           style={[styles.input, errs.dia && styles.inputErr]}
         />

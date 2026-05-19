@@ -1,24 +1,18 @@
 import { NextResponse } from "next/server";
 
-import {
-  getAlumnoProfile,
-  getDocentePublicoSiCoincide,
-  listDocentesParaAlumno,
-} from "@/lib/authServer";
+import { getDocentePublico, listDocentesParaAlumno } from "@/lib/authServer";
 import { listClasesDocente } from "@/lib/horarioServer";
 import { getSessionFromCookies } from "@/lib/session";
 
-async function requireAlumno() {
+async function requireAlumnoSession() {
   const session = await getSessionFromCookies();
   if (!session || session.role !== "alumno") return null;
-  const profile = await getAlumnoProfile(session.email);
-  if (!profile) return null;
-  return { session, profile };
+  return session;
 }
 
 export async function GET(request: Request) {
-  const ctx = await requireAlumno();
-  if (!ctx) {
+  const session = await requireAlumnoSession();
+  if (!session) {
     return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   }
 
@@ -27,10 +21,7 @@ export async function GET(request: Request) {
   const horarioOnly = searchParams.get("horario") === "1";
 
   if (emailDocente && horarioOnly) {
-    const pub = await getDocentePublicoSiCoincide(
-      emailDocente,
-      ctx.profile.institucion,
-    );
+    const pub = await getDocentePublico(emailDocente);
     if (!pub) {
       return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
     }
@@ -44,10 +35,7 @@ export async function GET(request: Request) {
   }
 
   if (emailDocente) {
-    const pub = await getDocentePublicoSiCoincide(
-      emailDocente,
-      ctx.profile.institucion,
-    );
+    const pub = await getDocentePublico(emailDocente);
     if (!pub) {
       return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
     }
@@ -61,6 +49,6 @@ export async function GET(request: Request) {
   }
 
   const q = searchParams.get("q") ?? "";
-  const docentes = await listDocentesParaAlumno(ctx.profile.institucion, q);
+  const docentes = await listDocentesParaAlumno(q);
   return NextResponse.json({ docentes });
 }

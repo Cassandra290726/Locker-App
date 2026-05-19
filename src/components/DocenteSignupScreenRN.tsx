@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native-web";
 
+import PasswordFieldRN from "@/components/PasswordFieldRN";
 import {
   fetchSession,
   getEmailInputError,
@@ -297,33 +298,29 @@ export default function DocenteSignupScreenRN({
           Usa el correo de trabajo o el asignado por tu institución.
         </Text>
 
-        <TextInput
+        <PasswordFieldRN
           value={contrasena}
           onChangeText={(t: string) => {
             setContrasena(t.slice(0, MAX_PASSWORD_LENGTH));
             clearTouches();
           }}
-          placeholder="Contraseña"
-          placeholderTextColor="#78716c"
-          secureTextEntry
+          hasError={Boolean(contrasenaMsg)}
           maxLength={MAX_PASSWORD_LENGTH}
-          style={[styles.input, contrasenaMsg && styles.inputError]}
         />
         {contrasenaMsg ? (
           <Text style={styles.fieldHint}>{contrasenaMsg}</Text>
         ) : null}
 
-        <TextInput
+        <PasswordFieldRN
           value={contrasena2}
           onChangeText={(t: string) => {
             setContrasena2(t.slice(0, MAX_PASSWORD_LENGTH));
             clearTouches();
           }}
           placeholder="Confirma la contraseña"
-          placeholderTextColor="#78716c"
-          secureTextEntry
+          hasError={Boolean(contrasena2Msg)}
           maxLength={MAX_PASSWORD_LENGTH}
-          style={[styles.input, contrasena2Msg && styles.inputError]}
+          accessibilityLabel="Confirmar contraseña"
         />
         {contrasena2Msg ? (
           <Text style={styles.fieldHint}>{contrasena2Msg}</Text>

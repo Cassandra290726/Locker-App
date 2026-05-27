@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 
 import {
   isValidDocentePerfilPublico,
+  normalizarPerfilPublicoGuardado,
   normalizeEmail,
   type AlumnoProfile,
   type DocentePerfilPublico,
@@ -37,18 +38,19 @@ function perfilPublicoToDocentePublico(
   accountEmail: string,
   p: DocentePerfilPublico,
 ): DocentePublico {
+  const n = normalizarPerfilPublicoGuardado(p);
   return {
     email: accountEmail,
-    apellidoPaterno: p.apellidoPaterno.trim(),
-    apellidoMaterno: p.apellidoMaterno.trim(),
-    nombres: p.nombres.trim(),
-    nombre: p.nombres.trim(),
-    apellidos: `${p.apellidoPaterno.trim()} ${p.apellidoMaterno.trim()}`.trim(),
-    escuelas: p.escuela.trim() ? [p.escuela.trim()] : [],
-    materias: p.materias.map((m) => m.trim()).filter(Boolean),
-    telefono: p.telefono.trim(),
-    correo: p.correo.trim(),
-    fotoUrl: p.fotoUrl?.trim() || null,
+    apellidoPaterno: n.apellidoPaterno,
+    apellidoMaterno: n.apellidoMaterno,
+    nombres: n.nombres,
+    nombre: n.nombres,
+    apellidos: `${n.apellidoPaterno} ${n.apellidoMaterno}`.trim(),
+    escuelas: n.escuelas,
+    materias: n.materias,
+    telefono: n.telefonos[0] ?? "",
+    correo: n.correos[0] ?? accountEmail,
+    fotoUrl: n.fotoUrl?.trim() || null,
   };
 }
 
@@ -131,16 +133,7 @@ export async function saveDocentePerfilPublico(
   const acc = accounts[key];
   if (!acc || acc.role !== "docente" || !acc.docenteProfile) return null;
 
-  const perfilPublico: DocentePerfilPublico = {
-    apellidoPaterno: data.apellidoPaterno.trim(),
-    apellidoMaterno: data.apellidoMaterno.trim(),
-    nombres: data.nombres.trim(),
-    escuela: data.escuela.trim(),
-    materias: data.materias.map((m) => m.trim()).filter(Boolean),
-    correo: data.correo.trim(),
-    telefono: data.telefono.trim(),
-    fotoUrl: data.fotoUrl?.trim() || undefined,
-  };
+  const perfilPublico = normalizarPerfilPublicoGuardado(data);
 
   accounts[key] = {
     ...acc,

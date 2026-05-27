@@ -11,6 +11,7 @@ import {
   type UserRole,
 } from "@/lib/authShared";
 import { registerAccount } from "@/lib/authServer";
+import { sendRegistrationAuthEmail } from "@/lib/emailAuth";
 import {
   createSessionToken,
   SESSION_COOKIE,
@@ -105,8 +106,17 @@ export async function POST(request: Request) {
   }
 
   const normalized = normalizeEmail(email);
+  const mail = await sendRegistrationAuthEmail(
+    normalized,
+    role as "docente" | "alumno",
+  );
+
   const token = await createSessionToken({ email: normalized, role: role as UserRole });
-  const res = NextResponse.json({ ok: true });
+  const res = NextResponse.json({
+    ok: true,
+    verificationEmailSent: mail.emailed,
+    devVerificationCode: mail.devCode,
+  });
   res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions);
   return res;
 }

@@ -52,25 +52,25 @@ function parseProfileBody(raw: unknown): Partial<DocenteProfile> | null {
   }
 
   if (p.perfilPublico && typeof p.perfilPublico === "object") {
-    const pub = p.perfilPublico as Record<string, unknown>;
-    patch.perfilPublico = {
-      apellidoPaterno:
-        typeof pub.apellidoPaterno === "string" ? pub.apellidoPaterno : "",
-      apellidoMaterno:
-        typeof pub.apellidoMaterno === "string" ? pub.apellidoMaterno : "",
-      nombres: typeof pub.nombres === "string" ? pub.nombres : "",
-      escuela: typeof pub.escuela === "string" ? pub.escuela : "",
-      materias: Array.isArray(pub.materias)
-        ? pub.materias.filter((m): m is string => typeof m === "string")
-        : [],
-      correo: typeof pub.correo === "string" ? pub.correo : "",
-      telefono: typeof pub.telefono === "string" ? pub.telefono : "",
-      fotoUrl:
-        typeof pub.fotoUrl === "string" ? pub.fotoUrl : undefined,
-    } as DocentePerfilPublico;
+    const parsed = parsePerfilPublicoBody(p.perfilPublico);
+    if (parsed) patch.perfilPublico = parsed;
   }
 
   return patch;
+}
+
+function parseStringArray(
+  value: unknown,
+  legacy?: string,
+): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .filter((v): v is string => typeof v === "string")
+      .map((v) => v.trim())
+      .filter(Boolean);
+  }
+  if (typeof legacy === "string" && legacy.trim()) return [legacy.trim()];
+  return [];
 }
 
 function parsePerfilPublicoBody(raw: unknown): DocentePerfilPublico | null {
@@ -84,16 +84,28 @@ function parsePerfilPublicoBody(raw: unknown): DocentePerfilPublico | null {
           .map((m) => m.trim())
           .filter(Boolean)
       : [];
+  const escuelas = parseStringArray(
+    p.escuelas,
+    typeof p.escuela === "string" ? p.escuela : undefined,
+  );
+  const correos = parseStringArray(
+    p.correos,
+    typeof p.correo === "string" ? p.correo : undefined,
+  );
+  const telefonos = parseStringArray(
+    p.telefonos,
+    typeof p.telefono === "string" ? p.telefono : undefined,
+  );
   return {
     apellidoPaterno:
       typeof p.apellidoPaterno === "string" ? p.apellidoPaterno.trim() : "",
     apellidoMaterno:
       typeof p.apellidoMaterno === "string" ? p.apellidoMaterno.trim() : "",
     nombres: typeof p.nombres === "string" ? p.nombres.trim() : "",
-    escuela: typeof p.escuela === "string" ? p.escuela.trim() : "",
+    escuelas,
     materias,
-    correo: typeof p.correo === "string" ? p.correo.trim() : "",
-    telefono: typeof p.telefono === "string" ? p.telefono.trim() : "",
+    correos,
+    telefonos,
     fotoUrl:
       typeof p.fotoUrl === "string" && p.fotoUrl.trim()
         ? p.fotoUrl.trim()
@@ -116,10 +128,14 @@ export async function GET(request: Request) {
     const tienePerfil =
       Boolean(profile.perfilPublico) &&
       isValidDocentePerfilPublico(profile.perfilPublico!);
+    const escuelasRegistro = profile.escuelas
+      .map((s) => s.escuela.trim())
+      .filter(Boolean);
     return NextResponse.json({
       tienePerfil,
       perfil: tienePerfil ? profile.perfilPublico : null,
       email: session.email,
+      escuelasRegistro,
     });
   }
 

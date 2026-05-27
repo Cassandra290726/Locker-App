@@ -54,7 +54,10 @@ export async function register(
   password: string,
   role: UserRole,
   profiles?: { docenteProfile?: DocenteProfile; alumnoProfile?: AlumnoProfile },
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<
+  | { ok: true; verificationEmailSent?: boolean; devVerificationCode?: string }
+  | { ok: false; error: string }
+> {
   const res = await fetch("/api/auth/register", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -67,8 +70,19 @@ export async function register(
       alumnoProfile: profiles?.alumnoProfile,
     }),
   });
-  const data = (await res.json()) as { ok?: boolean; error?: string };
-  if (res.ok && data.ok) return { ok: true };
+  const data = (await res.json()) as {
+    ok?: boolean;
+    error?: string;
+    verificationEmailSent?: boolean;
+    devVerificationCode?: string;
+  };
+  if (res.ok && data.ok) {
+    return {
+      ok: true,
+      verificationEmailSent: data.verificationEmailSent,
+      devVerificationCode: data.devVerificationCode,
+    };
+  }
   return { ok: false, error: data.error ?? "REGISTER_FAILED" };
 }
 

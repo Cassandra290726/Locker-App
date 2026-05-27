@@ -26,6 +26,9 @@ export const COLUMNAS_DIA = [
   { key: "D", nombre: "Domingo" },
 ] as const;
 
+/** Columnas del calendario (sin domingo) — igual para docente y alumno. */
+export const COLUMNAS_DIA_HORARIO = COLUMNAS_DIA.filter((c) => c.key !== "D");
+
 export type DiaCalendarioKey = (typeof COLUMNAS_DIA)[number]["key"];
 
 export type DocenteClaseGuardada = {
@@ -49,7 +52,6 @@ export const NOMBRES_DIA_VALIDOS = [
   "Jueves",
   "Viernes",
   "Sábado",
-  "Domingo",
 ] as const;
 
 /** Interpreta día: Lunes…Domingo (cualquier capitalización) o clave de columna L, M, Mi… */
@@ -72,7 +74,6 @@ export function normalizarDiaEntrada(raw: string): DiaCalendarioKey | null {
     viernes: "V",
     sabado: "S",
     sabados: "S",
-    domingo: "D",
   };
   const porNombre = nombreCompleto[t];
   if (porNombre) return porNombre;
@@ -91,18 +92,18 @@ export function normalizarDiaEntrada(raw: string): DiaCalendarioKey | null {
   if (t.startsWith("jue")) return "J";
   if (t.startsWith("vie")) return "V";
   if (t.startsWith("sab")) return "S";
-  if (t.startsWith("dom")) return "D";
+  if (t.startsWith("dom") || t === "d" || t === "domingo") return null;
 
   return null;
 }
 
-/** Todos los días de la semana son válidos para registrar clases. */
-export function esDiaHabilDocente(_d: DiaCalendarioKey): boolean {
-  return true;
+/** Lunes a sábado (sin domingo). */
+export function esDiaHabilDocente(d: DiaCalendarioKey): boolean {
+  return d !== "D";
 }
 
 export const DIAS_VALIDOS_AYUDA =
-  'Lunes, lunes, Martes, martes, Miércoles, miércoles, Jueves, jueves, Viernes, viernes, Sábado, sábado, Domingo o domingo.';
+  "Lunes, Martes, Miércoles, Jueves, Viernes o Sábado (con o sin acentos).";
 
 /** HH:mm 24 h */
 export function parseHoraAMinutos(raw: string): number | null {

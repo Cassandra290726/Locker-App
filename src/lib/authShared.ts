@@ -14,11 +14,15 @@ export type DocentePerfilPublico = {
   apellidoPaterno: string;
   apellidoMaterno: string;
   nombres: string;
-  escuela: string;
+  escuelas: string[];
   materias: string[];
-  correo: string;
-  telefono: string;
+  correos: string[];
+  telefonos: string[];
   fotoUrl?: string;
+  /** Compatibilidad datos antiguos */
+  escuela?: string;
+  correo?: string;
+  telefono?: string;
 };
 
 export type DocenteProfile = {
@@ -218,8 +222,26 @@ export function getNombresError(v: string): string | null {
   return null;
 }
 
-export function getEscuelaPerfilError(v: string): string | null {
-  if (!v.trim()) return "Escribe la escuela.";
+export function getEscuelasPerfilError(escuelas: string[]): string | null {
+  if (escuelas.length === 0) return "Agrega al menos una escuela.";
+  return null;
+}
+
+export function getCorreosPerfilError(correos: string[]): string | null {
+  if (correos.length === 0) return "Agrega al menos un correo.";
+  for (const c of correos) {
+    const err = getEmailInputError(c);
+    if (err) return err;
+  }
+  return null;
+}
+
+export function getTelefonosPerfilError(telefonos: string[]): string | null {
+  if (telefonos.length === 0) return "Agrega al menos un teléfono.";
+  for (const t of telefonos) {
+    const err = getTelefonoPerfilError(t);
+    if (err) return err;
+  }
   return null;
 }
 
@@ -228,31 +250,59 @@ export function getMateriasPerfilError(materias: string[]): string | null {
   return null;
 }
 
-export function getFotoPerfilError(fotoUrl?: string): string | null {
-  if (!fotoUrl?.trim()) return "Añade una foto de perfil.";
-  return null;
-}
-
 export type ErroresPerfilPublico = {
   apellidoPaterno?: string;
   apellidoMaterno?: string;
   nombres?: string;
-  escuela?: string;
+  escuelas?: string;
   materias?: string;
-  correo?: string;
-  telefono?: string;
-  fotoUrl?: string;
+  correos?: string;
+  telefonos?: string;
 };
+
+export function normalizarPerfilPublicoGuardado(
+  raw: DocentePerfilPublico,
+): DocentePerfilPublico {
+  const escuelas =
+    Array.isArray(raw.escuelas) && raw.escuelas.length > 0
+      ? raw.escuelas.map((e) => e.trim()).filter(Boolean)
+      : raw.escuela?.trim()
+        ? [raw.escuela.trim()]
+        : [];
+  const correos =
+    Array.isArray(raw.correos) && raw.correos.length > 0
+      ? raw.correos.map((c) => c.trim()).filter(Boolean)
+      : raw.correo?.trim()
+        ? [raw.correo.trim()]
+        : [];
+  const telefonos =
+    Array.isArray(raw.telefonos) && raw.telefonos.length > 0
+      ? raw.telefonos.map((t) => t.trim()).filter(Boolean)
+      : raw.telefono?.trim()
+        ? [raw.telefono.trim()]
+        : [];
+  return {
+    apellidoPaterno: raw.apellidoPaterno?.trim() ?? "",
+    apellidoMaterno: raw.apellidoMaterno?.trim() ?? "",
+    nombres: raw.nombres?.trim() ?? "",
+    escuelas,
+    materias: Array.isArray(raw.materias)
+      ? raw.materias.map((m) => m.trim()).filter(Boolean)
+      : [],
+    correos,
+    telefonos,
+    fotoUrl: raw.fotoUrl?.trim() || undefined,
+  };
+}
 
 export function validarPerfilPublico(input: {
   apellidoPaterno: string;
   apellidoMaterno: string;
   nombres: string;
-  escuela: string;
+  escuelas: string[];
   materias: string[];
-  correo: string;
-  telefono: string;
-  fotoUrl?: string;
+  correos: string[];
+  telefonos: string[];
 }): ErroresPerfilPublico {
   const err: ErroresPerfilPublico = {};
   const ap = getApellidoPaternoError(input.apellidoPaterno);
@@ -261,16 +311,14 @@ export function validarPerfilPublico(input: {
   if (am) err.apellidoMaterno = am;
   const nm = getNombresError(input.nombres);
   if (nm) err.nombres = nm;
-  const esc = getEscuelaPerfilError(input.escuela);
-  if (esc) err.escuela = esc;
+  const esc = getEscuelasPerfilError(input.escuelas);
+  if (esc) err.escuelas = esc;
   const mat = getMateriasPerfilError(input.materias);
   if (mat) err.materias = mat;
-  const cor = getEmailInputError(input.correo);
-  if (cor) err.correo = cor;
-  const tel = getTelefonoPerfilError(input.telefono);
-  if (tel) err.telefono = tel;
-  const foto = getFotoPerfilError(input.fotoUrl);
-  if (foto) err.fotoUrl = foto;
+  const cor = getCorreosPerfilError(input.correos);
+  if (cor) err.correos = cor;
+  const tel = getTelefonosPerfilError(input.telefonos);
+  if (tel) err.telefonos = tel;
   return err;
 }
 
@@ -279,20 +327,8 @@ export function hayErroresPerfilPublico(err: ErroresPerfilPublico): boolean {
 }
 
 export function isValidDocentePerfilPublico(p: DocentePerfilPublico): boolean {
-  return (
-    hayErroresPerfilPublico(
-      validarPerfilPublico({
-        apellidoPaterno: p.apellidoPaterno,
-        apellidoMaterno: p.apellidoMaterno,
-        nombres: p.nombres,
-        escuela: p.escuela,
-        materias: p.materias,
-        correo: p.correo,
-        telefono: p.telefono,
-        fotoUrl: p.fotoUrl,
-      }),
-    ) === false
-  );
+  const n = normalizarPerfilPublicoGuardado(p);
+  return hayErroresPerfilPublico(validarPerfilPublico(n)) === false;
 }
 
 export function isValidDocenteProfile(profile: DocenteProfile): boolean {

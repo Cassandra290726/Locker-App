@@ -57,3 +57,10 @@ export async function actualizarNotaAlumnoApi(
   if (res.ok && data.ok && data.nota) return { ok: true, nota: data.nota };
   return { ok: false };
 }
+
+export async function eliminarNotaAlumnoApi(id: string): Promise<{ ok: boolean }> {
+  const url = `/api/alumno/notas?id=${encodeURIComponent(id)}`;
+  const res = await fetch(url, { method: "DELETE", credentials: "include" });
+  const data = (await res.json()) as { ok?: boolean };
+  return { ok: Boolean(res.ok && data.ok) };
+}

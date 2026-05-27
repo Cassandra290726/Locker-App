@@ -21,6 +21,7 @@ import DocentePerfilFlowRN from "@/components/DocentePerfilFlowRN";
 import DocenteSignupScreenRN from "@/components/DocenteSignupScreenRN";
 import RoleSelectScreenRN from "@/components/RoleSelectScreenRN";
 import SplashScreenRN from "@/components/SplashScreenRN";
+import WelcomeRoleScreenRN from "@/components/WelcomeRoleScreenRN";
 import { fetchClasesAlumno } from "@/lib/alumnoHorarioClient";
 import type { DocentePublico } from "@/lib/alumnoDocentesClient";
 import {
@@ -35,6 +36,7 @@ type Phase =
   | "login"
   | "role"
   | "signup"
+  | "welcome"
   | "alumno_main"
   | "alumno_agregar_clase"
   | "alumno_horario_grid"
@@ -59,6 +61,26 @@ type DocenteClaseFormCtx = {
   editingId: string | null;
 };
 
+function welcomeStorageKey(email: string) {
+  return `locker_welcome_${email}`;
+}
+
+function shouldShowWelcome(email: string): boolean {
+  try {
+    return sessionStorage.getItem(welcomeStorageKey(email)) !== "1";
+  } catch {
+    return false;
+  }
+}
+
+function markWelcomeSeen(email: string) {
+  try {
+    sessionStorage.setItem(welcomeStorageKey(email), "1");
+  } catch {
+    /* ignore */
+  }
+}
+
 function parseInitialPhase(raw: string | null): Phase | null {
   if (raw === "login" || raw === "role" || raw === "signup") return raw;
   return null;
@@ -79,6 +101,15 @@ function SplashGateInner() {
     cancelTo: "agenda",
     editingId: null,
   });
+
+  function goAfterAuth(user: SessionUser) {
+    setSessionUser(user);
+    if (shouldShowWelcome(user.email)) {
+      setPhase("welcome");
+      return;
+    }
+    setPhase(user.role === "docente" ? "docente_main" : "alumno_main");
+  }
 
   const displayPhase: Phase =
     phase === "signup" && !signupRole ? "role" : phase;
@@ -105,10 +136,7 @@ function SplashGateInner() {
     return (
       <LoginScreenRN
         onCreateAccount={() => setPhase("role")}
-        onLoginSuccess={(user) => {
-          setSessionUser(user);
-          setPhase(user.role === "docente" ? "docente_main" : "alumno_main");
-        }}
+        onLoginSuccess={goAfterAuth}
       />
     );
   }
@@ -129,10 +157,7 @@ function SplashGateInner() {
     return (
       <DocenteSignupScreenRN
         onBack={() => setPhase("role")}
-        onRegistered={(user) => {
-          setSessionUser(user);
-          setPhase("docente_main");
-        }}
+        onRegistered={goAfterAuth}
       />
     );
   }
@@ -141,9 +166,21 @@ function SplashGateInner() {
     return (
       <AlumnoSignupFlowRN
         onBack={() => setPhase("role")}
-        onRegistered={(user) => {
-          setSessionUser(user);
-          setPhase("alumno_main");
+        onRegistered={goAfterAuth}
+      />
+    );
+  }
+
+  if (displayPhase === "welcome" && sessionUser) {
+    return (
+      <WelcomeRoleScreenRN
+        role={sessionUser.role}
+        email={sessionUser.email}
+        onContinue={() => {
+          markWelcomeSeen(sessionUser.email);
+          setPhase(
+            sessionUser.role === "docente" ? "docente_main" : "alumno_main",
+          );
         }}
       />
     );

@@ -22,6 +22,7 @@ import {
 type Screen =
   | "intro"
   | "form"
+  | "fotoConfirm"
   | "cancelConfirm"
   | "success"
   | "main"
@@ -63,11 +64,13 @@ export default function DocentePerfilFlowRN({ onClose }: Props) {
   const [apellidoPaterno, setApellidoPaterno] = useState("");
   const [apellidoMaterno, setApellidoMaterno] = useState("");
   const [nombres, setNombres] = useState("");
-  const [escuela, setEscuela] = useState("");
+  const [escuelas, setEscuelas] = useState<string[]>([]);
+  const [escuelaDraft, setEscuelaDraft] = useState("");
   const [materias, setMaterias] = useState<string[]>([]);
   const [materiaDraft, setMateriaDraft] = useState("");
-  const [correo, setCorreo] = useState("");
-  const [telefono, setTelefono] = useState("");
+  const [correos, setCorreos] = useState<string[]>([""]);
+  const [telefonos, setTelefonos] = useState<string[]>([""]);
+  const [escuelasRegistro, setEscuelasRegistro] = useState<string[]>([]);
   const [fotoUrl, setFotoUrl] = useState("");
   const [errs, setErrs] = useState<ErroresPerfilPublico>({});
 
@@ -77,10 +80,10 @@ export default function DocentePerfilFlowRN({ onClose }: Props) {
     setApellidoPaterno(p.apellidoPaterno);
     setApellidoMaterno(p.apellidoMaterno);
     setNombres(p.nombres);
-    setEscuela(p.escuela);
+    setEscuelas([...(p.escuelas ?? [])]);
     setMaterias([...p.materias]);
-    setCorreo(p.correo);
-    setTelefono(p.telefono);
+    setCorreos(p.correos?.length ? [...p.correos] : [""]);
+    setTelefonos(p.telefonos?.length ? [...p.telefonos] : [""]);
     setFotoUrl(p.fotoUrl ?? "");
   }, []);
 
@@ -98,8 +101,10 @@ export default function DocentePerfilFlowRN({ onClose }: Props) {
       tienePerfil?: boolean;
       perfil?: DocentePerfilPublico | null;
       email?: string;
+      escuelasRegistro?: string[];
     };
     setCuentaEmail(data.email ?? "");
+    setEscuelasRegistro(data.escuelasRegistro ?? []);
     if (data.tienePerfil && data.perfil) {
       aplicarPerfil(data.perfil);
       setScreen("main");
@@ -120,11 +125,13 @@ export default function DocentePerfilFlowRN({ onClose }: Props) {
       setApellidoPaterno("");
       setApellidoMaterno("");
       setNombres("");
-      setEscuela("");
+      const fromReg = escuelasRegistro.filter(Boolean);
+      setEscuelas(fromReg.length ? [...fromReg] : []);
+      setEscuelaDraft("");
       setMaterias([]);
       setMateriaDraft("");
-      setCorreo(cuentaEmail);
-      setTelefono("");
+      setCorreos([cuentaEmail || ""]);
+      setTelefonos([""]);
       setFotoUrl("");
     }
     setScreen("form");
@@ -153,16 +160,58 @@ export default function DocentePerfilFlowRN({ onClose }: Props) {
     setMateriaDraft("");
   }
 
+  function agregarEscuela() {
+    const t = escuelaDraft.trim();
+    if (!t) return;
+    setEscuelas((e) => (e.includes(t) ? e : [...e, t]));
+    setEscuelaDraft("");
+    setErrs((er) => ({ ...er, escuelas: undefined }));
+  }
+
+  function quitarEscuela(idx: number) {
+    setEscuelas((e) => e.filter((_, i) => i !== idx));
+  }
+
+  function agregarCorreo() {
+    if (correos.length >= 3) return;
+    setCorreos((c) => [...c, ""]);
+  }
+
+  function agregarTelefono() {
+    if (telefonos.length >= 3) return;
+    setTelefonos((t) => [...t, ""]);
+  }
+
+  function intentarGuardar() {
+    const input = {
+      apellidoPaterno,
+      apellidoMaterno,
+      nombres,
+      escuelas,
+      materias,
+      correos: correos.map((c) => c.trim()).filter(Boolean),
+      telefonos: telefonos.map((t) => t.trim()).filter(Boolean),
+    };
+    const v = validarPerfilPublico(input);
+    setErrs(v);
+    if (hayErroresPerfilPublico(v)) return;
+    if (!fotoUrl.trim()) {
+      setScreen("fotoConfirm");
+      return;
+    }
+    void guardar();
+  }
+
   async function guardar() {
     const input = {
       apellidoPaterno,
       apellidoMaterno,
       nombres,
-      escuela,
+      escuelas,
       materias,
-      correo,
-      telefono,
-      fotoUrl: fotoUrl || undefined,
+      correos: correos.map((c) => c.trim()).filter(Boolean),
+      telefonos: telefonos.map((t) => t.trim()).filter(Boolean),
+      fotoUrl: fotoUrl.trim() || undefined,
     };
     const v = validarPerfilPublico(input);
     setErrs(v);
@@ -310,9 +359,6 @@ export default function DocentePerfilFlowRN({ onClose }: Props) {
                   </View>
                 )}
               </TouchableOpacity>
-              {errs.fotoUrl ? (
-                <Text style={styles.fieldErr}>{errs.fotoUrl}</Text>
-              ) : null}
             </View>
             <View style={styles.namesCol}>
               <FieldLabel text="Apellido Paterno" />
@@ -322,6 +368,8 @@ export default function DocentePerfilFlowRN({ onClose }: Props) {
                   setApellidoPaterno(t);
                   setErrs((e) => ({ ...e, apellidoPaterno: undefined }));
                 }}
+                placeholder="Apellido paterno"
+                placeholderTextColor="#786660"
                 style={[styles.fieldGreen, errs.apellidoPaterno && styles.fieldErrBd]}
               />
               {errs.apellidoPaterno ? (
@@ -335,6 +383,8 @@ export default function DocentePerfilFlowRN({ onClose }: Props) {
                   setApellidoMaterno(t);
                   setErrs((e) => ({ ...e, apellidoMaterno: undefined }));
                 }}
+                placeholder="Apellido materno"
+                placeholderTextColor="#786660"
                 style={[styles.fieldGreen, errs.apellidoMaterno && styles.fieldErrBd]}
               />
               {errs.apellidoMaterno ? (
@@ -348,24 +398,40 @@ export default function DocentePerfilFlowRN({ onClose }: Props) {
                   setNombres(t);
                   setErrs((e) => ({ ...e, nombres: undefined }));
                 }}
+                placeholder="Nombre(s)"
+                placeholderTextColor="#786660"
                 style={[styles.fieldGreen, errs.nombres && styles.fieldErrBd]}
               />
               {errs.nombres ? <Text style={styles.fieldErr}>{errs.nombres}</Text> : null}
             </View>
           </View>
 
-          <FieldLabel text="Escuela" showPlus />
-          <TextInput
-            value={escuela}
-            onChangeText={(t: string) => {
-              setEscuela(t);
-              setErrs((e) => ({ ...e, escuela: undefined }));
-            }}
-            style={[styles.fieldGreen, errs.escuela && styles.fieldErrBd]}
-          />
-          {errs.escuela ? <Text style={styles.fieldErr}>{errs.escuela}</Text> : null}
+          <FieldLabel text="Escuela" />
+          <View style={[styles.fieldGreenArea, errs.escuelas && styles.fieldErrBd]}>
+            {escuelas.map((e, i) => (
+              <View key={`${e}-${i}`} style={styles.chipRow}>
+                <Text style={styles.materiaItem}>• {e}</Text>
+                <TouchableOpacity onPress={() => quitarEscuela(i)} activeOpacity={0.8}>
+                  <Text style={styles.chipRemove}>✕</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+            <View style={styles.materiaRow}>
+              <TextInput
+                value={escuelaDraft}
+                onChangeText={setEscuelaDraft}
+                placeholder="Agregar escuela"
+                placeholderTextColor="#786660"
+                style={styles.materiaInputInner}
+              />
+              <TouchableOpacity style={styles.materiaAdd} onPress={agregarEscuela}>
+                <Text style={styles.materiaAddTxt}>Agregar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          {errs.escuelas ? <Text style={styles.fieldErr}>{errs.escuelas}</Text> : null}
 
-          <FieldLabel text="Materias" showPlus />
+          <FieldLabel text="Materias" />
           <View style={[styles.fieldGreenArea, errs.materias && styles.fieldErrBd]}>
             {materias.map((m, i) => (
               <Text key={`${m}-${i}`} style={styles.materiaItem}>
@@ -387,31 +453,49 @@ export default function DocentePerfilFlowRN({ onClose }: Props) {
           </View>
           {errs.materias ? <Text style={styles.fieldErr}>{errs.materias}</Text> : null}
 
-          <FieldLabel text="Correo electrónico" showPlus />
-          <TextInput
-            value={correo}
-            onChangeText={(t: string) => {
-              setCorreo(t);
-              setErrs((e) => ({ ...e, correo: undefined }));
-            }}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            style={[styles.fieldGreen, errs.correo && styles.fieldErrBd]}
-          />
-          {errs.correo ? <Text style={styles.fieldErr}>{errs.correo}</Text> : null}
+          <FieldLabel text="Correo electrónico" showPlus onPlus={agregarCorreo} />
+          {correos.map((c, i) => (
+            <TextInput
+              key={`cor-${i}`}
+              value={c}
+              onChangeText={(t: string) => {
+                setCorreos((arr) => arr.map((v, j) => (j === i ? t : v)));
+                setErrs((e) => ({ ...e, correos: undefined }));
+              }}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              placeholder="correo@ejemplo.com"
+              placeholderTextColor="#786660"
+              style={[
+                styles.fieldGreen,
+                errs.correos && styles.fieldErrBd,
+                i > 0 && { marginTop: 8 },
+              ]}
+            />
+          ))}
+          {errs.correos ? <Text style={styles.fieldErr}>{errs.correos}</Text> : null}
 
-          <FieldLabel text="Teléfono" showPlus />
-          <TextInput
-            value={telefono}
-            onChangeText={(t: string) => {
-              const only = t.replace(/\D/g, "");
-              setTelefono(only);
-              setErrs((e) => ({ ...e, telefono: undefined }));
-            }}
-            keyboardType="phone-pad"
-            style={[styles.fieldGreen, errs.telefono && styles.fieldErrBd]}
-          />
-          {errs.telefono ? <Text style={styles.fieldErr}>{errs.telefono}</Text> : null}
+          <FieldLabel text="Teléfono" showPlus onPlus={agregarTelefono} />
+          {telefonos.map((t, i) => (
+            <TextInput
+              key={`tel-${i}`}
+              value={t}
+              onChangeText={(txt: string) => {
+                const only = txt.replace(/\D/g, "");
+                setTelefonos((arr) => arr.map((v, j) => (j === i ? only : v)));
+                setErrs((e) => ({ ...e, telefonos: undefined }));
+              }}
+              keyboardType="phone-pad"
+              placeholder="6641234567"
+              placeholderTextColor="#786660"
+              style={[
+                styles.fieldGreen,
+                errs.telefonos && styles.fieldErrBd,
+                i > 0 && { marginTop: 8 },
+              ]}
+            />
+          ))}
+          {errs.telefonos ? <Text style={styles.fieldErr}>{errs.telefonos}</Text> : null}
 
           <View style={{ height: 100 }} />
         </ScrollView>
@@ -425,11 +509,41 @@ export default function DocentePerfilFlowRN({ onClose }: Props) {
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.btnGuardar, gradGuardar, saving && { opacity: 0.65 }]}
-            onPress={() => void guardar()}
+            onPress={intentarGuardar}
             disabled={saving}
             activeOpacity={0.85}
           >
             <Text style={styles.btnGuardarTxt}>Guardar</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  /** Sin foto — confirmar */
+  if (screen === "fotoConfirm") {
+    return (
+      <View style={styles.root}>
+        {hiddenFileInput}
+        <Header onBack={() => setScreen("form")} showLogoRight />
+        <View style={styles.centerBox}>
+          <Text style={styles.confirmMsg}>¿Desea continuar sin foto de Perfil?</Text>
+          <View style={{ height: 28 }} />
+          <TouchableOpacity
+            style={[styles.choiceBtn, gradSiNo]}
+            onPress={() => void guardar()}
+            disabled={saving}
+            activeOpacity={0.9}
+          >
+            <Text style={styles.choiceTxt}>Sí</Text>
+          </TouchableOpacity>
+          <View style={{ height: 16 }} />
+          <TouchableOpacity
+            style={[styles.choiceBtn, gradSiNo]}
+            onPress={() => setScreen("form")}
+            activeOpacity={0.9}
+          >
+            <Text style={styles.choiceTxt}>No</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -551,10 +665,10 @@ export default function DocentePerfilFlowRN({ onClose }: Props) {
             <Text style={styles.nameMain}>{nombres}</Text>
           </View>
         </View>
-        <Section label="Escuela" value={escuela} />
+        <SectionMultiline label="Escuela" items={escuelas} />
         <SectionMultiline label="Materias" items={materias} />
-        <Section label="Correo" value={correo} />
-        <Section label="Número" value={telefono} />
+        <SectionMultiline label="Correo" items={correos} />
+        <SectionMultiline label="Número" items={telefonos} />
 
         <View style={{ height: 24 }} />
         <View style={styles.twoBtns}>
@@ -572,11 +686,11 @@ export default function DocentePerfilFlowRN({ onClose }: Props) {
                 apellidoPaterno,
                 apellidoMaterno,
                 nombres,
-                escuela,
+                escuelas,
                 materias,
-                correo,
-                telefono,
-                fotoUrl,
+                correos,
+                telefonos,
+                fotoUrl: fotoUrl || undefined,
               });
               irFormulario("main");
             }}
@@ -594,13 +708,19 @@ export default function DocentePerfilFlowRN({ onClose }: Props) {
 function FieldLabel({
   text,
   showPlus,
+  onPlus,
 }: {
   text: string;
   showPlus?: boolean;
+  onPlus?: () => void;
 }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6 }}>
-      {showPlus ? <Text style={styles.plusMark}>⊕</Text> : null}
+      {showPlus ? (
+        <TouchableOpacity onPress={onPlus} activeOpacity={0.75} accessibilityLabel={`Agregar ${text}`}>
+          <Text style={styles.plusMark}>⊕</Text>
+        </TouchableOpacity>
+      ) : null}
       <Text style={styles.lbl}>{text}</Text>
     </View>
   );
@@ -785,6 +905,13 @@ const styles = RNStyleSheet.create({
     borderRadius: 10,
   },
   materiaAddTxt: { color: "#FFFBDB", fontWeight: "700", fontSize: 13 },
+  chipRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 4,
+  },
+  chipRemove: { fontSize: 16, color: "#806b63", fontWeight: "800", padding: 4 },
 
   formFooter: {
     flexDirection: "row",

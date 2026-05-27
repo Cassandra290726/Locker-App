@@ -2,11 +2,15 @@ import type { DocenteClaseGuardada } from "@/lib/horarioShared";
 
 export type DocentePublico = {
   email: string;
+  apellidoPaterno: string;
+  apellidoMaterno: string;
+  nombres: string;
   nombre: string;
   apellidos: string;
   escuelas: string[];
   materias: string[];
   telefono: string;
+  correo: string;
   fotoUrl: string | null;
 };
 

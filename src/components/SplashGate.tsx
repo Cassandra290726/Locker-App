@@ -17,6 +17,7 @@ import DocenteAgregarClaseScreenRN from "@/components/DocenteAgregarClaseScreenR
 import DocenteNotasScreenRN from "@/components/DocenteNotasScreenRN";
 import DocenteHorarioGridScreenRN from "@/components/DocenteHorarioGridScreenRN";
 import DocenteHubScreenRN from "@/components/DocenteHubScreenRN";
+import DocentePerfilFlowRN from "@/components/DocentePerfilFlowRN";
 import DocenteSignupScreenRN from "@/components/DocenteSignupScreenRN";
 import RoleSelectScreenRN from "@/components/RoleSelectScreenRN";
 import SplashScreenRN from "@/components/SplashScreenRN";
@@ -45,7 +46,8 @@ type Phase =
   | "docente_agenda"
   | "docente_agregar_clase"
   | "docente_horario_grid"
-  | "docente_notas";
+  | "docente_notas"
+  | "docente_perfil";
 
 type AlumnoClaseFormCtx = {
   cancelTo: "hub" | "grid";
@@ -253,7 +255,7 @@ function SplashGateInner() {
           setPhase("login");
         }}
         onAgenda={() => setPhase("docente_agenda")}
-        onPerfil={() => router.push("/perfil")}
+        onPerfil={() => setPhase("docente_perfil")}
       />
     );
   }
@@ -308,6 +310,12 @@ function SplashGateInner() {
   if (displayPhase === "docente_notas") {
     return (
       <DocenteNotasScreenRN onBack={() => setPhase("docente_agenda")} />
+    );
+  }
+
+  if (displayPhase === "docente_perfil") {
+    return (
+      <DocentePerfilFlowRN onClose={() => setPhase("docente_main")} />
     );
   }
 

@@ -43,8 +43,6 @@ export default function AlumnoDocentePerfilScreenRN({
     );
   }
 
-  const nombreCompleto = `${docente.nombre} ${docente.apellidos}`.trim();
-
   return (
     <View style={styles.root}>
       <View style={styles.topRow}>
@@ -69,27 +67,23 @@ export default function AlumnoDocentePerfilScreenRN({
                 source={{ uri: docente.fotoUrl }}
                 style={styles.avatarImg}
                 resizeMode="cover"
-                accessibilityLabel={`Foto de ${nombreCompleto}`}
+                accessibilityLabel="Foto del docente"
               />
             ) : (
               <Text style={styles.avatarPlaceholder}>👤</Text>
             )}
           </View>
           <View style={styles.nameCol}>
-            <Text style={styles.nameLine}>{docente.nombre}</Text>
-            {docente.apellidos ? (
-              <Text style={styles.nameLine}>{docente.apellidos}</Text>
-            ) : null}
+            <Text style={styles.nameLine}>{docente.apellidoPaterno}</Text>
+            <Text style={styles.nameLine}>{docente.apellidoMaterno}</Text>
+            <Text style={styles.nameLine}>{docente.nombres}</Text>
           </View>
         </View>
 
         <FieldBlock label="Escuela" lines={docente.escuelas} />
         <FieldBlock label="Materias" lines={docente.materias} />
-        <FieldBlock label="Correo" lines={[docente.email]} />
-        <FieldBlock
-          label="Número"
-          lines={[docente.telefono || "—"]}
-        />
+        <FieldBlock label="Correo" lines={[docente.correo || docente.email]} />
+        <FieldBlock label="Número" lines={[docente.telefono || "—"]} />
       </ScrollView>
 
       <TouchableOpacity
@@ -103,13 +97,7 @@ export default function AlumnoDocentePerfilScreenRN({
   );
 }
 
-function FieldBlock({
-  label,
-  lines,
-}: {
-  label: string;
-  lines: string[];
-}) {
+function FieldBlock({ label, lines }: { label: string; lines: string[] }) {
   const show = lines.filter(Boolean).length > 0 ? lines.filter(Boolean) : ["—"];
   return (
     <View style={styles.fieldBlock}>
@@ -132,6 +120,8 @@ const styles = RNStyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 14,
     paddingBottom: 32,
+    maxWidth: 480,
+    alignSelf: "center",
   },
   topRow: {
     flexDirection: "row",
@@ -153,7 +143,7 @@ const styles = RNStyleSheet.create({
     width: 100,
     height: 100,
     borderWidth: 2,
-    borderColor: "#1c1917",
+    borderColor: "#806b63",
     backgroundColor: "#fff",
     justifyContent: "center",
     alignItems: "center",
@@ -163,11 +153,11 @@ const styles = RNStyleSheet.create({
   avatarPlaceholder: { fontSize: 48 },
   nameCol: { flex: 1, gap: 8, paddingTop: 8 },
   nameLine: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "800",
     color: "#1c1917",
     borderBottomWidth: 2,
-    borderBottomColor: "#1c1917",
+    borderBottomColor: "#806b63",
     paddingBottom: 4,
   },
   fieldBlock: { marginBottom: 22 },
@@ -185,7 +175,8 @@ const styles = RNStyleSheet.create({
   },
   underline: {
     height: 2,
-    backgroundColor: "#1c1917",
+    backgroundColor: "#806b63",
+    opacity: 0.5,
   },
   verHorarioBtn: {
     alignSelf: "center",

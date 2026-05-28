@@ -15,7 +15,7 @@ import {
   fetchClasesAlumno,
 } from "@/lib/alumnoHorarioClient";
 import {
-  COLUMNAS_DIA,
+  COLUMNAS_DIA_HORARIO,
   FRANJAS_DOCENTE,
   claseSolapaFranja,
   type DocenteClaseGuardada,
@@ -142,7 +142,7 @@ export default function AlumnoHorarioGridScreenRN({
           <View style={styles.table}>
             <View style={[styles.row, styles.headerRow]}>
               <View style={[styles.cornerCell, styles.cellBorder]} />
-              {COLUMNAS_DIA.map((d) => (
+              {COLUMNAS_DIA_HORARIO.map((d) => (
                 <View key={d.key} style={[styles.dayHead, styles.cellBorder]}>
                   <Text style={styles.dayHeadText}>{d.key}</Text>
                 </View>
@@ -157,7 +157,7 @@ export default function AlumnoHorarioGridScreenRN({
                   <View style={[styles.timeCell, styles.cellBorder]}>
                     <Text style={styles.timeText}>{franja.label}</Text>
                   </View>
-                  {COLUMNAS_DIA.map((col) => {
+                  {COLUMNAS_DIA_HORARIO.map((col) => {
                     const lista = clasesEnCelda(col.key, franja);
                     const interactive = mode === "delete" || mode === "idle";
                     const celda =

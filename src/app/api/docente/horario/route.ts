@@ -49,7 +49,7 @@ function validateClasePayload(p: {
   if (!p.materia.trim()) return "Falta la materia.";
   if (!p.dia) return "El día no es válido.";
   if (!esDiaHabilDocente(p.dia)) {
-    return "Día no válido. Usa Lunes, Martes, Miércoles, Jueves, Viernes, Sábado o Domingo.";
+    return "Día no válido. Usa Lunes, Martes, Miércoles, Jueves, Viernes o Sábado.";
   }
   if (!p.salon.trim()) return "Indica salón y edificio.";
   if (!formatoHoraValido(p.horaInicio))

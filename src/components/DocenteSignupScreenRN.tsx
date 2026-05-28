@@ -13,6 +13,12 @@ import {
 
 import PasswordFieldRN from "@/components/PasswordFieldRN";
 import {
+  LockerGradientButton,
+  LockerIncompleteMsg,
+  RoleBadge,
+} from "@/components/locker/LockerUi";
+import { FONT_ROUNDED, LOCKER } from "@/lib/lockerTheme";
+import {
   fetchSession,
   getEmailInputError,
   getMatriculaInputError,
@@ -87,7 +93,9 @@ export default function DocenteSignupScreenRN({
   const [contrasena2, setContrasena2] = useState("");
   const [schools, setSchools] = useState<SchoolBlock[]>([emptySchool()]);
   const [fieldErrors, setFieldErrors] = useState<FieldErrorsState>({});
+  const [showIncomplete, setShowIncomplete] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [verifyHint, setVerifyHint] = useState("");
 
   const tienenDuplicado = useMemo(
     () => schools.some((_, i) => escuelaDuplicadoEnIndice(schools, i)),
@@ -98,6 +106,14 @@ export default function DocenteSignupScreenRN({
 
   const canAddSchool =
     schools.length < MAX_DOCENTE_SCHOOLS &&
+    todasFilasCompletas &&
+    !tienenDuplicado;
+
+  const canSubmit =
+    nombre.trim().length > 0 &&
+    getEmailInputError(correo) === null &&
+    getPasswordInputError(contrasena) === null &&
+    getPasswordMismatchError(contrasena, contrasena2) === null &&
     todasFilasCompletas &&
     !tienenDuplicado;
 
@@ -196,10 +212,12 @@ export default function DocenteSignupScreenRN({
 
   async function submit() {
     const v = validate(false);
-    if (hasProblems(v)) {
+    if (hasProblems(v) || !canSubmit) {
+      setShowIncomplete(true);
       setFieldErrors(v);
       return;
     }
+    setShowIncomplete(false);
 
     const n = nombre.trim();
     const e = correo.trim();
@@ -218,6 +236,14 @@ export default function DocenteSignupScreenRN({
     if (!result.ok) {
       setFieldErrors(validate(result.error === "EMAIL_TAKEN"));
       return;
+    }
+
+    if (result.verificationEmailSent) {
+      setVerifyHint("Revisa tu correo: enviamos un código de verificación.");
+    } else if (result.devVerificationCode) {
+      setVerifyHint(
+        `Código de verificación (desarrollo): ${result.devVerificationCode}`,
+      );
     }
 
     const session = await fetchSession();
@@ -263,6 +289,7 @@ export default function DocenteSignupScreenRN({
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        <RoleBadge role="docente" />
         <View style={styles.spacer} />
 
         <TextInput
@@ -271,7 +298,7 @@ export default function DocenteSignupScreenRN({
             setNombre(t);
             clearTouches();
           }}
-          placeholder="Nombre"
+          placeholder="Tu nombre completo"
           placeholderTextColor="#78716c"
           style={[styles.input, nombreMsg && styles.inputError]}
         />
@@ -283,7 +310,7 @@ export default function DocenteSignupScreenRN({
             setCorreo(t);
             clearTouches();
           }}
-          placeholder="Correo"
+          placeholder="correo@ejemplo.com"
           placeholderTextColor="#78716c"
           autoCapitalize="none"
           autoCorrect={false}
@@ -304,6 +331,7 @@ export default function DocenteSignupScreenRN({
             setContrasena(t.slice(0, MAX_PASSWORD_LENGTH));
             clearTouches();
           }}
+          placeholder="Mínimo 8 caracteres"
           hasError={Boolean(contrasenaMsg)}
           maxLength={MAX_PASSWORD_LENGTH}
         />
@@ -345,7 +373,7 @@ export default function DocenteSignupScreenRN({
                     ...(t.trim() ? {} : { matricula: "" }),
                   });
                 }}
-                placeholder="Escuela"
+                placeholder="Nombre de la escuela"
                 placeholderTextColor="#78716c"
                 style={[styles.input, se.escuela && styles.inputError]}
               />
@@ -361,7 +389,7 @@ export default function DocenteSignupScreenRN({
                         matricula: t.replace(/\D/g, ""),
                       })
                     }
-                    placeholder="Matricula"
+                    placeholder="Matrícula (solo números)"
                     placeholderTextColor="#78716c"
                     keyboardType="number-pad"
                     style={[styles.input, se.matricula && styles.inputError]}
@@ -389,19 +417,19 @@ export default function DocenteSignupScreenRN({
             añadir
           </Text>
         </TouchableOpacity>
+
+        <LockerIncompleteMsg show={showIncomplete && !canSubmit} />
+        {verifyHint ? <Text style={styles.verifyHint}>{verifyHint}</Text> : null}
       </ScrollView>
 
       <View style={styles.footer}>
-        <TouchableOpacity
-          style={[styles.nextBtn, loading && styles.btnDisabled]}
+        <LockerGradientButton
+          label={loading ? "Guardando…" : "Siguiente"}
+          variant="docente"
           onPress={() => void submit()}
-          activeOpacity={0.85}
-          disabled={loading}
-        >
-          <Text style={styles.nextBtnText}>
-            {loading ? "Guardando…" : "siguiente"}
-          </Text>
-        </TouchableOpacity>
+          disabled={!canSubmit || loading}
+          loading={loading}
+        />
       </View>
     </View>
   );
@@ -442,8 +470,9 @@ const styles = RNStyleSheet.create({
     flex: 1,
     fontSize: 20,
     fontWeight: "700",
-    color: "#292524",
+    color: LOCKER.text,
     textAlign: "center",
+    fontFamily: FONT_ROUNDED,
   },
   headerLogo: {
     width: 40,
@@ -549,5 +578,12 @@ const styles = RNStyleSheet.create({
     fontSize: 15,
     fontWeight: "700",
     color: "#1c1917",
+  },
+  verifyHint: {
+    fontSize: 13,
+    color: LOCKER.text,
+    textAlign: "center",
+    fontFamily: FONT_ROUNDED,
+    marginTop: 8,
   },
 });

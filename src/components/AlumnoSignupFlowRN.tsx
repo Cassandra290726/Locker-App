@@ -5,12 +5,17 @@ import {
   StyleSheet as RNStyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native-web";
 
 import AlumnoRegistroHeader from "@/components/AlumnoRegistroHeader";
 import PasswordFieldRN from "@/components/PasswordFieldRN";
+import {
+  LockerGradientButton,
+  LockerIncompleteMsg,
+  RoleBadge,
+} from "@/components/locker/LockerUi";
+import { FONT_ROUNDED, LOCKER } from "@/lib/lockerTheme";
 import {
   fetchSession,
   getEmailInputError,
@@ -58,12 +63,14 @@ const fieldStyles = RNStyleSheet.create({
   label: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#806b63",
+    color: LOCKER.text,
+    fontFamily: FONT_ROUNDED,
   },
   err: {
     color: "#b91c1c",
     fontSize: 13,
     marginTop: 2,
+    fontFamily: FONT_ROUNDED,
   },
 });
 
@@ -78,7 +85,9 @@ export default function AlumnoSignupFlowRN({ onBack, onRegistered }: Props) {
   const [plantel, setPlantel] = useState("");
   const [turno, setTurno] = useState("");
   const [errs, setErrs] = useState<Record<string, string | undefined>>({});
+  const [showIncomplete, setShowIncomplete] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [verifyHint, setVerifyHint] = useState("");
 
   const canStep1 =
     !getNombreInputError(nombre) &&
@@ -93,33 +102,34 @@ export default function AlumnoSignupFlowRN({ onBack, onRegistered }: Props) {
     !getTurnoInputError(turno);
 
   function goStep2() {
-    const next: Record<string, string | undefined> = {
-      nombre: getNombreInputError(nombre) ?? undefined,
-      email: getEmailInputError(email) ?? undefined,
-      password: getPasswordInputError(password) ?? undefined,
-      password2: getPasswordMismatchError(password, password2) ?? undefined,
-    };
-    setErrs(next);
-    if (
-      next.nombre ||
-      next.email ||
-      next.password ||
-      next.password2
-    ) {
+    if (!canStep1) {
+      setShowIncomplete(true);
+      const next: Record<string, string | undefined> = {
+        nombre: getNombreInputError(nombre) ?? undefined,
+        email: getEmailInputError(email) ?? undefined,
+        password: getPasswordInputError(password) ?? undefined,
+        password2: getPasswordMismatchError(password, password2) ?? undefined,
+      };
+      setErrs(next);
       return;
     }
+    setShowIncomplete(false);
     setStep(2);
   }
 
   async function submitRegister() {
-    const next: Record<string, string | undefined> = {
-      institucion: getInstitucionInputError(institucion) ?? undefined,
-      municipio: getMunicipioInputError(municipio) ?? undefined,
-      plantel: getPlantelInputError(plantel) ?? undefined,
-      turno: getTurnoInputError(turno) ?? undefined,
-    };
-    setErrs(next);
-    if (Object.values(next).some(Boolean)) return;
+    if (!canStep2) {
+      setShowIncomplete(true);
+      const next: Record<string, string | undefined> = {
+        institucion: getInstitucionInputError(institucion) ?? undefined,
+        municipio: getMunicipioInputError(municipio) ?? undefined,
+        plantel: getPlantelInputError(plantel) ?? undefined,
+        turno: getTurnoInputError(turno) ?? undefined,
+      };
+      setErrs(next);
+      return;
+    }
+    setShowIncomplete(false);
 
     setLoading(true);
     const result = await register(email.trim(), password, "alumno", {
@@ -144,6 +154,14 @@ export default function AlumnoSignupFlowRN({ onBack, onRegistered }: Props) {
       return;
     }
 
+    if (result.verificationEmailSent) {
+      setVerifyHint("Revisa tu correo: enviamos un código de verificación.");
+    } else if (result.devVerificationCode) {
+      setVerifyHint(
+        `Código de verificación (desarrollo): ${result.devVerificationCode}`,
+      );
+    }
+
     const session = await fetchSession();
     if (session) onRegistered(session);
   }
@@ -152,6 +170,7 @@ export default function AlumnoSignupFlowRN({ onBack, onRegistered }: Props) {
     return (
       <View style={styles.root}>
         <AlumnoRegistroHeader onBack={onBack} />
+        <RoleBadge role="alumno" />
         <View style={styles.spacer} />
         <View style={styles.form}>
           <LabeledField label="Nombre" error={errs.nombre}>
@@ -161,8 +180,9 @@ export default function AlumnoSignupFlowRN({ onBack, onRegistered }: Props) {
                 setNombre(t);
                 setErrs((e) => ({ ...e, nombre: undefined }));
               }}
-              style={[styles.input, errs.nombre && styles.inputErr]}
+              placeholder="Tu nombre completo"
               placeholderTextColor="#78716c"
+              style={[styles.input, errs.nombre && styles.inputErr]}
             />
           </LabeledField>
           <LabeledField label="Correo" error={errs.email}>
@@ -172,6 +192,7 @@ export default function AlumnoSignupFlowRN({ onBack, onRegistered }: Props) {
                 setEmail(t);
                 setErrs((e) => ({ ...e, email: undefined }));
               }}
+              placeholder="correo@ejemplo.com"
               autoCapitalize="none"
               keyboardType="email-address"
               maxLength={MAX_EMAIL_LENGTH}
@@ -190,6 +211,7 @@ export default function AlumnoSignupFlowRN({ onBack, onRegistered }: Props) {
                   password2: undefined,
                 }));
               }}
+              placeholder="Mínimo 8 caracteres"
               hasError={Boolean(errs.password)}
               maxLength={MAX_PASSWORD_LENGTH}
             />
@@ -201,22 +223,21 @@ export default function AlumnoSignupFlowRN({ onBack, onRegistered }: Props) {
                 setPassword2(t.slice(0, MAX_PASSWORD_LENGTH));
                 setErrs((e) => ({ ...e, password2: undefined }));
               }}
-              placeholder="Confirma la contraseña"
+              placeholder="Repite la contraseña"
               hasError={Boolean(errs.password2)}
               maxLength={MAX_PASSWORD_LENGTH}
               accessibilityLabel="Confirmar contraseña"
             />
           </LabeledField>
+          <LockerIncompleteMsg show={showIncomplete && !canStep1} />
         </View>
         <View style={styles.footerRow}>
-          <TouchableOpacity
-            style={[styles.nextBtn, (!canStep1 || loading) && styles.nextDisabled]}
+          <LockerGradientButton
+            label="Siguiente"
+            variant="alumno"
             onPress={goStep2}
             disabled={!canStep1 || loading}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.nextText}>Siguiente</Text>
-          </TouchableOpacity>
+          />
         </View>
       </View>
     );
@@ -228,8 +249,10 @@ export default function AlumnoSignupFlowRN({ onBack, onRegistered }: Props) {
         onBack={() => {
           setStep(1);
           setErrs({});
+          setShowIncomplete(false);
         }}
       />
+      <RoleBadge role="alumno" />
       <View style={styles.spacer} />
       <View style={styles.form}>
         <LabeledField label="Institución" error={errs.institucion}>
@@ -239,8 +262,9 @@ export default function AlumnoSignupFlowRN({ onBack, onRegistered }: Props) {
               setInstitucion(t);
               setErrs((e) => ({ ...e, institucion: undefined }));
             }}
-            style={[styles.input, errs.institucion && styles.inputErr]}
+            placeholder="Nombre de tu institución"
             placeholderTextColor="#78716c"
+            style={[styles.input, errs.institucion && styles.inputErr]}
           />
         </LabeledField>
         <LabeledField label="Municipio" error={errs.municipio}>
@@ -258,10 +282,11 @@ export default function AlumnoSignupFlowRN({ onBack, onRegistered }: Props) {
                 borderRadius: 12,
                 border: errs.municipio ? "2px solid #FF7F96" : "1px solid #e7e5e4",
                 backgroundColor: "#fff",
-                color: municipio ? "#1c1917" : "#78716c",
+                color: municipio ? LOCKER.text : "#78716c",
+                fontFamily: FONT_ROUNDED,
               }}
             >
-              <option value="">Selecciona municipio</option>
+              <option value="">Selecciona tu municipio</option>
               {MUNICIPIOS_BCN.map((m) => (
                 <option key={m} value={m}>
                   {m}
@@ -277,8 +302,9 @@ export default function AlumnoSignupFlowRN({ onBack, onRegistered }: Props) {
               setPlantel(t);
               setErrs((e) => ({ ...e, plantel: undefined }));
             }}
-            style={[styles.input, errs.plantel && styles.inputErr]}
+            placeholder="Nombre del plantel"
             placeholderTextColor="#78716c"
+            style={[styles.input, errs.plantel && styles.inputErr]}
           />
         </LabeledField>
         <LabeledField label="Turno" error={errs.turno}>
@@ -288,22 +314,22 @@ export default function AlumnoSignupFlowRN({ onBack, onRegistered }: Props) {
               setTurno(t);
               setErrs((e) => ({ ...e, turno: undefined }));
             }}
-            style={[styles.input, errs.turno && styles.inputErr]}
+            placeholder="Ej. Matutino, Vespertino"
             placeholderTextColor="#78716c"
+            style={[styles.input, errs.turno && styles.inputErr]}
           />
         </LabeledField>
+        <LockerIncompleteMsg show={showIncomplete && !canStep2} />
+        {verifyHint ? <Text style={styles.verifyHint}>{verifyHint}</Text> : null}
       </View>
       <View style={styles.footerRow}>
-        <TouchableOpacity
-          style={[styles.nextBtn, (!canStep2 || loading) && styles.nextDisabled]}
+        <LockerGradientButton
+          label={loading ? "Registrando…" : "Siguiente"}
+          variant="alumno"
           onPress={() => void submitRegister()}
           disabled={!canStep2 || loading}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.nextText}>
-            {loading ? "Registrando…" : "Siguiente"}
-          </Text>
-        </TouchableOpacity>
+          loading={loading}
+        />
       </View>
     </View>
   );
@@ -313,13 +339,13 @@ const styles = RNStyleSheet.create({
   root: {
     width: "100%",
     minHeight: "100vh",
-    backgroundColor: "#FFFBDB",
+    backgroundColor: LOCKER.bg,
     paddingHorizontal: 24,
     paddingTop: 16,
     paddingBottom: 32,
   },
   spacer: {
-    height: 48,
+    height: 24,
   },
   form: {
     gap: 20,
@@ -336,8 +362,9 @@ const styles = RNStyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    color: "#1c1917",
+    color: LOCKER.text,
     outlineStyle: "none",
+    fontFamily: FONT_ROUNDED,
   },
   inputErr: {
     borderColor: "#FF7F96",
@@ -354,18 +381,11 @@ const styles = RNStyleSheet.create({
     alignSelf: "center",
     width: "100%",
   },
-  nextBtn: {
-    backgroundColor: "#B6F0FF",
-    paddingVertical: 14,
-    paddingHorizontal: 32,
-    borderRadius: 14,
-  },
-  nextDisabled: {
-    opacity: 0.45,
-  },
-  nextText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#1c1917",
+  verifyHint: {
+    fontSize: 13,
+    color: LOCKER.text,
+    textAlign: "center",
+    fontFamily: FONT_ROUNDED,
+    marginTop: 8,
   },
 });

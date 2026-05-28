@@ -4,8 +4,11 @@ import path from "path";
 import bcrypt from "bcryptjs";
 
 import {
+  isValidDocentePerfilPublico,
+  normalizarPerfilPublicoGuardado,
   normalizeEmail,
   type AlumnoProfile,
+  type DocentePerfilPublico,
   type DocenteProfile,
   type UserRole,
 } from "@/lib/authShared";
@@ -19,13 +22,37 @@ export type StoredAccount = {
 
 export type DocentePublico = {
   email: string;
+  apellidoPaterno: string;
+  apellidoMaterno: string;
+  nombres: string;
   nombre: string;
   apellidos: string;
   escuelas: string[];
   materias: string[];
   telefono: string;
+  correo: string;
   fotoUrl: string | null;
 };
+
+function perfilPublicoToDocentePublico(
+  accountEmail: string,
+  p: DocentePerfilPublico,
+): DocentePublico {
+  const n = normalizarPerfilPublicoGuardado(p);
+  return {
+    email: accountEmail,
+    apellidoPaterno: n.apellidoPaterno,
+    apellidoMaterno: n.apellidoMaterno,
+    nombres: n.nombres,
+    nombre: n.nombres,
+    apellidos: `${n.apellidoPaterno} ${n.apellidoMaterno}`.trim(),
+    escuelas: n.escuelas,
+    materias: n.materias,
+    telefono: n.telefonos[0] ?? "",
+    correo: n.correos[0] ?? accountEmail,
+    fotoUrl: n.fotoUrl?.trim() || null,
+  };
+}
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const ACCOUNTS_FILE = path.join(DATA_DIR, "accounts.json");
@@ -90,18 +117,47 @@ export async function getAlumnoProfile(
 function toDocentePublico(
   email: string,
   profile: DocenteProfile,
-): DocentePublico {
-  return {
-    email,
-    nombre: profile.nombre.trim(),
-    apellidos: (profile.apellidos ?? "").trim(),
-    escuelas: profile.escuelas.map((s) => s.escuela.trim()).filter(Boolean),
-    materias: Array.isArray(profile.materias)
-      ? profile.materias.map((m) => m.trim()).filter(Boolean)
-      : [],
-    telefono: (profile.telefono ?? "").trim(),
-    fotoUrl: profile.fotoUrl?.trim() || null,
+): DocentePublico | null {
+  if (!profile.perfilPublico || !isValidDocentePerfilPublico(profile.perfilPublico)) {
+    return null;
+  }
+  return perfilPublicoToDocentePublico(email, profile.perfilPublico);
+}
+
+export async function saveDocentePerfilPublico(
+  email: string,
+  data: DocentePerfilPublico,
+): Promise<DocentePerfilPublico | null> {
+  const key = normalizeEmail(email);
+  const accounts = await readAccounts();
+  const acc = accounts[key];
+  if (!acc || acc.role !== "docente" || !acc.docenteProfile) return null;
+
+  const perfilPublico = normalizarPerfilPublicoGuardado(data);
+
+  accounts[key] = {
+    ...acc,
+    docenteProfile: { ...acc.docenteProfile, perfilPublico },
   };
+  await writeAccounts(accounts);
+  return perfilPublico;
+}
+
+export async function deleteDocentePerfilPublico(email: string): Promise<boolean> {
+  const key = normalizeEmail(email);
+  const accounts = await readAccounts();
+  const acc = accounts[key];
+  if (!acc || acc.role !== "docente" || !acc.docenteProfile) return false;
+
+  const nextProfile = { ...acc.docenteProfile };
+  delete nextProfile.perfilPublico;
+
+  accounts[key] = {
+    ...acc,
+    docenteProfile: nextProfile,
+  };
+  await writeAccounts(accounts);
+  return true;
 }
 
 export async function updateDocenteProfile(
@@ -115,6 +171,7 @@ export async function updateDocenteProfile(
 
   const prev = acc.docenteProfile;
   const next: DocenteProfile = {
+    ...prev,
     nombre:
       typeof patch.nombre === "string" && patch.nombre.trim()
         ? patch.nombre.trim()
@@ -131,6 +188,7 @@ export async function updateDocenteProfile(
       patch.fotoUrl !== undefined
         ? patch.fotoUrl.trim() || undefined
         : prev.fotoUrl,
+    perfilPublico: patch.perfilPublico ?? prev.perfilPublico,
   };
 
   accounts[key] = { ...acc, docenteProfile: next };
@@ -156,15 +214,20 @@ export async function listDocentesParaAlumno(
   for (const [email, acc] of Object.entries(accounts)) {
     if (acc.role !== "docente" || !acc.docenteProfile) continue;
     const pub = toDocentePublico(email, acc.docenteProfile);
+    if (!pub) continue;
     if (q) {
-      const full = `${pub.nombre} ${pub.apellidos}`.toLowerCase();
+      const full =
+        `${pub.nombres} ${pub.apellidoPaterno} ${pub.apellidoMaterno}`.toLowerCase();
       if (!full.includes(q)) continue;
     }
     out.push(pub);
   }
 
   out.sort((a, b) =>
-    `${a.nombre} ${a.apellidos}`.localeCompare(`${b.nombre} ${b.apellidos}`, "es"),
+    `${a.apellidoPaterno} ${a.apellidoMaterno} ${a.nombres}`.localeCompare(
+      `${b.apellidoPaterno} ${b.apellidoMaterno} ${b.nombres}`,
+      "es",
+    ),
   );
   return out;
 }

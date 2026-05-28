@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import DocentePerfilScreenRN from "@/components/DocentePerfilScreenRN";
+import PerfilPageClient from "@/components/PerfilPageClient";
 import { getSessionFromCookies } from "@/lib/session";
 
 export default async function PerfilPage() {
@@ -18,7 +18,7 @@ export default async function PerfilPage() {
   }
 
   if (user.role === "docente") {
-    return <DocentePerfilScreenRN />;
+    return <PerfilPageClient />;
   }
 
   return (

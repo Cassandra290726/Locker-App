@@ -95,11 +95,11 @@ export default function AlumnoDocentesListScreenRN({
               </View>
               <View style={styles.cardBody}>
                 <Text style={styles.cardName}>
-                  {d.nombre} {d.apellidos}
+                  {d.apellidoPaterno} {d.apellidoMaterno} {d.nombres}
                 </Text>
                 <Text style={styles.cardLine}>
                   <Text style={styles.cardLabel}>Correo: </Text>
-                  {d.email}
+                  {d.correo || d.email}
                 </Text>
                 <Text style={styles.cardLine}>
                   <Text style={styles.cardLabel}>Número: </Text>

@@ -13,6 +13,7 @@ import {
 
 import DocenteNotaEditorScreenRN from "@/components/DocenteNotaEditorScreenRN";
 import {
+  eliminarNotaAlumnoApi,
   fetchAlumnoNotas,
   guardarCategoriasAlumnoApi,
 } from "@/lib/alumnoNotasClient";
@@ -41,6 +42,7 @@ export default function AlumnoNotasScreenRN({ onBack }: Props) {
   const [draftCats, setDraftCats] = useState<NotaCategoria[]>([]);
   const [editor, setEditor] = useState<EditorOpen | null>(null);
   const [agregarModal, setAgregarModal] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [savingCats, setSavingCats] = useState(false);
 
   const reload = useCallback(async () => {
@@ -190,25 +192,43 @@ export default function AlumnoNotasScreenRN({ onBack }: Props) {
             const cat = data.categorias.find((c) => c.id === n.categoriaId);
             const accent = cat?.color ?? "#78716c";
             return (
-              <TouchableOpacity
-                key={n.id}
-                style={[styles.card, { borderLeftColor: accent }]}
-                onPress={() => setEditor({ mode: "edit", nota: n })}
-                activeOpacity={0.9}
-              >
-                <Text style={styles.cardTitle}>{n.titulo || "Sin título"}</Text>
-                {n.tipo === "lista" || n.contenido.trim() || n.itemsLista.length ? (
-                  <Text style={styles.cardPreview} numberOfLines={3}>
-                    {previewNota(n)}
-                  </Text>
-                ) : null}
-                <View style={styles.cardFooter}>
-                  <Text style={styles.cardDate}>📅 {formatoFechaNota(n.updatedAt)}</Text>
-                  {n.tipo === "lista" ? (
-                    <Text style={styles.cardListaMark}> ✓ Lista</Text>
+              <View key={n.id} style={[styles.card, { borderLeftColor: accent }]}>
+                <TouchableOpacity
+                  style={styles.cardTap}
+                  onPress={() => setEditor({ mode: "edit", nota: n })}
+                  activeOpacity={0.9}
+                >
+                  <Text style={styles.cardTitle}>{n.titulo || "Sin título"}</Text>
+                  {n.tipo === "lista" || n.contenido.trim() || n.itemsLista.length ? (
+                    <Text style={styles.cardPreview} numberOfLines={3}>
+                      {previewNota(n)}
+                    </Text>
                   ) : null}
-                </View>
-              </TouchableOpacity>
+                  <View style={styles.cardFooter}>
+                    <Text style={styles.cardDate}>📅 {formatoFechaNota(n.updatedAt)}</Text>
+                    {n.tipo === "lista" ? (
+                      <Text style={styles.cardListaMark}> ✓ Lista</Text>
+                    ) : null}
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.deleteBtn}
+                  onPress={() => void (async () => {
+                    if (deletingId) return;
+                    setDeletingId(n.id);
+                    const { ok } = await eliminarNotaAlumnoApi(n.id);
+                    setDeletingId(null);
+                    if (ok) await reload();
+                  })()}
+                  disabled={deletingId === n.id}
+                  activeOpacity={0.8}
+                  accessibilityLabel="Eliminar nota"
+                >
+                  <Text style={styles.deleteBtnTxt}>
+                    {deletingId === n.id ? "…" : "Eliminar"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             );
           })
         )}
@@ -419,6 +439,20 @@ const styles = RNStyleSheet.create({
     borderLeftWidth: 5,
     borderWidth: 1,
     borderColor: "#e7e5e4",
+    gap: 8,
+  },
+  cardTap: { flex: 1 },
+  deleteBtn: {
+    alignSelf: "flex-end",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: "#fee2e2",
+  },
+  deleteBtnTxt: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#b91c1c",
   },
   cardTitle: {
     fontSize: 17,

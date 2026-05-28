@@ -1,12 +1,11 @@
-import { mkdir, readFile, writeFile } from "fs/promises";
-import path from "path";
-
 import bcrypt from "bcryptjs";
 
+import { db } from "@/lib/db";
 import {
   isValidDocentePerfilPublico,
   normalizarPerfilPublicoGuardado,
   normalizeEmail,
+  normalizeEscuelaNombre,
   type AlumnoProfile,
   type DocentePerfilPublico,
   type DocenteProfile,
@@ -16,6 +15,7 @@ import {
 export type StoredAccount = {
   passwordHash: string;
   role: UserRole;
+  verified?: boolean;
   docenteProfile?: DocenteProfile;
   alumnoProfile?: AlumnoProfile;
 };
@@ -54,33 +54,19 @@ function perfilPublicoToDocentePublico(
   };
 }
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const ACCOUNTS_FILE = path.join(DATA_DIR, "accounts.json");
-
-async function ensureDataDir() {
-  await mkdir(DATA_DIR, { recursive: true });
-}
-
-async function readAccounts(): Promise<Record<string, StoredAccount>> {
-  try {
-    const raw = await readFile(ACCOUNTS_FILE, "utf8");
-    const parsed = JSON.parse(raw) as Record<string, StoredAccount>;
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch {
-    return {};
-  }
-}
-
-async function writeAccounts(next: Record<string, StoredAccount>) {
-  await ensureDataDir();
-  await writeFile(ACCOUNTS_FILE, JSON.stringify(next, null, 2), "utf8");
-}
-
 export async function getAccount(
   email: string,
 ): Promise<StoredAccount | undefined> {
-  const key = normalizeEmail(email);
-  return (await readAccounts())[key];
+  const data = await db.getAccount(email);
+  if (!data) return undefined;
+
+  return {
+    passwordHash: data.password_hash,
+    role: data.role,
+    verified: data.verified,
+    docenteProfile: data.docente_profile || undefined,
+    alumnoProfile: data.alumno_profile || undefined,
+  };
 }
 
 export async function registerAccount(
@@ -91,20 +77,12 @@ export async function registerAccount(
   alumnoProfile?: AlumnoProfile,
 ): Promise<void> {
   const key = normalizeEmail(email);
-  const accounts = await readAccounts();
-  if (accounts[key]) {
+  const existing = await db.getAccount(key);
+  if (existing) {
     throw new Error("EMAIL_TAKEN");
   }
   const passwordHash = await bcrypt.hash(password, 12);
-  accounts[key] = {
-    passwordHash,
-    role,
-    ...(role === "docente" && docenteProfile
-      ? { docenteProfile }
-      : {}),
-    ...(role === "alumno" && alumnoProfile ? { alumnoProfile } : {}),
-  };
-  await writeAccounts(accounts);
+  await db.createAccount(key, passwordHash, role, docenteProfile || null, alumnoProfile || null);
 }
 
 export async function getAlumnoProfile(
@@ -129,34 +107,28 @@ export async function saveDocentePerfilPublico(
   data: DocentePerfilPublico,
 ): Promise<DocentePerfilPublico | null> {
   const key = normalizeEmail(email);
-  const accounts = await readAccounts();
-  const acc = accounts[key];
-  if (!acc || acc.role !== "docente" || !acc.docenteProfile) return null;
+  const acc = await db.getAccount(key);
+  if (!acc || acc.role !== "docente" || !acc.docente_profile) return null;
 
   const perfilPublico = normalizarPerfilPublicoGuardado(data);
-
-  accounts[key] = {
-    ...acc,
-    docenteProfile: { ...acc.docenteProfile, perfilPublico },
+  const docenteProfile: DocenteProfile = {
+    ...(acc.docente_profile as DocenteProfile),
+    perfilPublico,
   };
-  await writeAccounts(accounts);
+
+  await db.updateAccount(key, { docente_profile: docenteProfile });
   return perfilPublico;
 }
 
 export async function deleteDocentePerfilPublico(email: string): Promise<boolean> {
   const key = normalizeEmail(email);
-  const accounts = await readAccounts();
-  const acc = accounts[key];
-  if (!acc || acc.role !== "docente" || !acc.docenteProfile) return false;
+  const acc = await db.getAccount(key);
+  if (!acc || acc.role !== "docente" || !acc.docente_profile) return false;
 
-  const nextProfile = { ...acc.docenteProfile };
+  const nextProfile = { ...(acc.docente_profile as DocenteProfile) };
   delete nextProfile.perfilPublico;
 
-  accounts[key] = {
-    ...acc,
-    docenteProfile: nextProfile,
-  };
-  await writeAccounts(accounts);
+  await db.updateAccount(key, { docente_profile: nextProfile });
   return true;
 }
 
@@ -165,11 +137,10 @@ export async function updateDocenteProfile(
   patch: Partial<DocenteProfile>,
 ): Promise<DocenteProfile | null> {
   const key = normalizeEmail(email);
-  const accounts = await readAccounts();
-  const acc = accounts[key];
-  if (!acc || acc.role !== "docente" || !acc.docenteProfile) return null;
+  const acc = await db.getAccount(key);
+  if (!acc || acc.role !== "docente" || !acc.docente_profile) return null;
 
-  const prev = acc.docenteProfile;
+  const prev = acc.docente_profile as DocenteProfile;
   const next: DocenteProfile = {
     ...prev,
     nombre:
@@ -191,8 +162,7 @@ export async function updateDocenteProfile(
     perfilPublico: patch.perfilPublico ?? prev.perfilPublico,
   };
 
-  accounts[key] = { ...acc, docenteProfile: next };
-  await writeAccounts(accounts);
+  await db.updateAccount(key, { docente_profile: next });
   return next;
 }
 
@@ -203,18 +173,33 @@ export async function getDocenteProfile(
   return acc?.docenteProfile;
 }
 
-/** Todos los docentes registrados (sin filtrar por escuela del alumno). */
+/** Obtiene docentes restringiendo a la escuela del alumno para garantizar la privacidad. */
 export async function listDocentesParaAlumno(
+  alumnoEmail: string,
   searchQuery?: string,
 ): Promise<DocentePublico[]> {
-  const accounts = await readAccounts();
+  const alumnoProfile = await getAlumnoProfile(alumnoEmail);
+  const inst = alumnoProfile?.institucion
+    ? normalizeEscuelaNombre(alumnoProfile.institucion)
+    : "";
+
+  const accounts = await db.listDocentes();
   const q = (searchQuery ?? "").trim().toLowerCase();
   const out: DocentePublico[] = [];
 
-  for (const [email, acc] of Object.entries(accounts)) {
-    if (acc.role !== "docente" || !acc.docenteProfile) continue;
-    const pub = toDocentePublico(email, acc.docenteProfile);
+  for (const acc of accounts) {
+    if (acc.role !== "docente" || !acc.docente_profile) continue;
+    const pub = toDocentePublico(acc.email, acc.docente_profile as DocenteProfile);
     if (!pub) continue;
+
+    // Privacidad: Solo ver profesores de la misma institución si el alumno tiene una registrada
+    if (inst) {
+      const coincideEscuela = pub.escuelas.some(
+        (e) => normalizeEscuelaNombre(e) === inst,
+      );
+      if (!coincideEscuela) continue;
+    }
+
     if (q) {
       const full =
         `${pub.nombres} ${pub.apellidoPaterno} ${pub.apellidoMaterno}`.toLowerCase();

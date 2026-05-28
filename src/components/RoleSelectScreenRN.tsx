@@ -9,6 +9,7 @@ import {
 } from "react-native-web";
 
 import type { UserRole } from "@/lib/lockerAuth";
+import { GRADIENTS } from "@/lib/lockerTheme";
 
 type Props = {
   onBack: () => void;
@@ -123,9 +124,11 @@ const styles = RNStyleSheet.create({
   },
   docente: {
     backgroundColor: "#FF7F96",
+    backgroundImage: GRADIENTS.docente,
   },
   alumno: {
     backgroundColor: "#CEFFB4",
+    backgroundImage: GRADIENTS.alumno,
   },
   roleBtnText: {
     fontSize: 18,

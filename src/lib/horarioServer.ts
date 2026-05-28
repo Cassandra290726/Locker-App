@@ -1,65 +1,53 @@
-import { mkdir, readFile, writeFile } from "fs/promises";
-import path from "path";
 import { randomUUID } from "crypto";
-
+import { db } from "@/lib/db";
 import { normalizeEmail } from "@/lib/authShared";
 import type {
   DiaCalendarioKey,
   DocenteClaseGuardada,
 } from "@/lib/horarioShared";
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const HORARIO_FILE = path.join(DATA_DIR, "docente_horarios.json");
-
-type Store = Record<string, DocenteClaseGuardada[]>;
-
-async function ensureDir() {
-  await mkdir(DATA_DIR, { recursive: true });
-}
-
-async function readStore(): Promise<Store> {
-  try {
-    const raw = await readFile(HORARIO_FILE, "utf8");
-    const p = JSON.parse(raw) as Store;
-    return p && typeof p === "object" ? p : {};
-  } catch {
-    return {};
-  }
-}
-
-async function writeStore(store: Store) {
-  await ensureDir();
-  await writeFile(HORARIO_FILE, JSON.stringify(store, null, 2), "utf8");
-}
-
 export async function listClasesDocente(
   email: string,
 ): Promise<DocenteClaseGuardada[]> {
-  const key = normalizeEmail(email);
-  const store = await readStore();
-  return Array.isArray(store[key]) ? store[key] : [];
+  const norm = normalizeEmail(email);
+  const clases = await db.listClasesDocente(norm);
+  return clases.map((c) => ({
+    id: c.id,
+    materia: c.materia,
+    dia: c.dia as DiaCalendarioKey,
+    horaInicio: c.hora_inicio,
+    horaFinal: c.hora_final,
+    salon: c.salon,
+  }));
 }
 
 export async function addClaseDocente(
   email: string,
   clase: Omit<DocenteClaseGuardada, "id"> & { id?: string },
 ): Promise<DocenteClaseGuardada> {
-  const key = normalizeEmail(email);
-  const store = await readStore();
-  const list = Array.isArray(store[key]) ? [...store[key]] : [];
-  const nuevos: DocenteClaseGuardada = {
+  const norm = normalizeEmail(email);
+  const id = clase.id ?? randomUUID();
+  const nueva: DocenteClaseGuardada = {
     ...clase,
-    id: clase.id ?? randomUUID(),
+    id,
     materia: clase.materia.trim(),
     salon: clase.salon.trim(),
     horaInicio: clase.horaInicio.trim(),
     horaFinal: clase.horaFinal.trim(),
     dia: clase.dia as DiaCalendarioKey,
   };
-  list.push(nuevos);
-  store[key] = list;
-  await writeStore(store);
-  return nuevos;
+
+  await db.addClaseDocente({
+    id,
+    email: norm,
+    materia: nueva.materia,
+    dia: nueva.dia,
+    hora_inicio: nueva.horaInicio,
+    hora_final: nueva.horaFinal,
+    salon: nueva.salon,
+  });
+
+  return nueva;
 }
 
 export async function updateClaseDocente(
@@ -67,34 +55,31 @@ export async function updateClaseDocente(
   id: string,
   patch: Omit<DocenteClaseGuardada, "id">,
 ): Promise<DocenteClaseGuardada | null> {
-  const key = normalizeEmail(email);
-  const store = await readStore();
-  const list = Array.isArray(store[key]) ? [...store[key]] : [];
-  const idx = list.findIndex((c) => c.id === id);
-  if (idx < 0) return null;
-  list[idx] = {
-    id,
+  const norm = normalizeEmail(email);
+  const patchData = {
     materia: patch.materia.trim(),
     dia: patch.dia as DiaCalendarioKey,
-    horaInicio: patch.horaInicio.trim(),
-    horaFinal: patch.horaFinal.trim(),
+    hora_inicio: patch.horaInicio.trim(),
+    hora_final: patch.horaFinal.trim(),
     salon: patch.salon.trim(),
   };
-  store[key] = list;
-  await writeStore(store);
-  return list[idx];
+
+  await db.updateClaseDocente(id, norm, patchData);
+
+  return {
+    id,
+    materia: patchData.materia,
+    dia: patchData.dia,
+    horaInicio: patchData.hora_inicio,
+    horaFinal: patchData.hora_final,
+    salon: patchData.salon,
+  };
 }
 
 export async function deleteClaseDocente(
   email: string,
   id: string,
 ): Promise<boolean> {
-  const key = normalizeEmail(email);
-  const store = await readStore();
-  const list = Array.isArray(store[key]) ? store[key] : [];
-  const next = list.filter((c) => c.id !== id);
-  if (next.length === list.length) return false;
-  store[key] = next;
-  await writeStore(store);
-  return true;
+  const norm = normalizeEmail(email);
+  return await db.deleteClaseDocente(id, norm);
 }

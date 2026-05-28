@@ -17,6 +17,7 @@ import {
   login,
   type SessionUser,
 } from "@/lib/lockerAuth";
+import { GRADIENTS } from "@/lib/lockerTheme";
 
 type Props = {
   onCreateAccount: () => void;
@@ -42,11 +43,13 @@ export default function LoginScreenRN({
 
     if (!e || !p) {
       setFieldHighlight(true);
+      if (typeof window !== "undefined") window.alert("Faltan campos por llenar. Por favor, ingresa tu correo y contraseña.");
       return;
     }
 
     if (!isValidEmailFormat(e)) {
       setFieldHighlight(true);
+      if (typeof window !== "undefined") window.alert("El correo ingresado no es válido. Verifica el formato.");
       return;
     }
 
@@ -57,6 +60,7 @@ export default function LoginScreenRN({
     if (!result.ok) {
       setCredError(true);
       setFieldHighlight(true);
+      if (typeof window !== "undefined") window.alert("Credenciales incorrectas. Verifica tu correo y contraseña.");
       return;
     }
 
@@ -115,16 +119,16 @@ export default function LoginScreenRN({
           onPress={onCreateAccount}
           activeOpacity={0.75}
         >
-          <Text style={styles.btnGhostText}>crear cuenta</Text>
+          <Text style={styles.btnGhostText}>Registrarme</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.btnPrimary, loading && styles.btnDisabled]}
           onPress={() => void tryNext()}
           activeOpacity={0.85}
-          disabled={loading}
+          // disabled={loading} // Permitir clic para ver alertas
         >
           <Text style={styles.btnPrimaryText}>
-            {loading ? "Entrando…" : "siguiente"}
+            {loading ? "Entrando…" : "Iniciar sesión"}
           </Text>
         </TouchableOpacity>
       </View>
@@ -176,7 +180,7 @@ const styles = RNStyleSheet.create({
     outlineStyle: "none",
   },
   inputError: {
-    borderColor: "#FF7F96",
+    borderColor: "#EF5B5B",
     borderWidth: 2,
   },
   errText: {
@@ -199,6 +203,9 @@ const styles = RNStyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "#ffffff",
+    borderWidth: 1,
+    borderColor: "#e7e5e4",
   },
   btnGhostText: {
     fontSize: 15,
@@ -212,6 +219,7 @@ const styles = RNStyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 12,
     backgroundColor: "#B6F0FF",
+    backgroundImage: GRADIENTS.blue,
     alignItems: "center",
     justifyContent: "center",
   },

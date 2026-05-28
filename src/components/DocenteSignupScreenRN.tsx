@@ -215,6 +215,15 @@ export default function DocenteSignupScreenRN({
     if (hasProblems(v) || !canSubmit) {
       setShowIncomplete(true);
       setFieldErrors(v);
+      if (typeof window !== "undefined") {
+        let errStr = "Corrige los siguientes errores:\n";
+        if (v.nombre) errStr += "- " + v.nombre + "\n";
+        if (v.correo) errStr += "- " + v.correo + "\n";
+        if (v.contrasena) errStr += "- " + v.contrasena + "\n";
+        if (v.contrasena2) errStr += "- " + v.contrasena2 + "\n";
+        if (v.escuelas) errStr += "- Revisa las escuelas y matrículas\n";
+        window.alert(errStr);
+      }
       return;
     }
     setShowIncomplete(false);
@@ -427,7 +436,7 @@ export default function DocenteSignupScreenRN({
           label={loading ? "Guardando…" : "Siguiente"}
           variant="docente"
           onPress={() => void submit()}
-          disabled={!canSubmit || loading}
+          disabled={loading}
           loading={loading}
         />
       </View>
@@ -528,7 +537,7 @@ const styles = RNStyleSheet.create({
     outlineStyle: "none",
   },
   inputError: {
-    borderColor: "#FF7F96",
+    borderColor: "#EF5B5B",
     borderWidth: 2,
   },
   schoolBlock: {

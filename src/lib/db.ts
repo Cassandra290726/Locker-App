@@ -16,8 +16,8 @@ export type DBAccount = {
   password_hash: string;
   role: "docente" | "alumno";
   verified: boolean;
-  docente_profile: any | null;
-  alumno_profile: any | null;
+  docente_profile: Record<string, unknown> | null;
+  alumno_profile: Record<string, unknown> | null;
 };
 
 export type DBClase = {
@@ -37,7 +37,7 @@ export type DBNota = {
   contenido: string;
   categoria_id: string;
   tipo: "texto" | "lista";
-  items_lista: any | null;
+  items_lista: Record<string, unknown>[] | null;
   created_at: string;
   updated_at: string;
 };
@@ -70,8 +70,8 @@ export const db = {
     email: string,
     passwordHash: string,
     role: "docente" | "alumno",
-    docenteProfile: any = null,
-    alumnoProfile: any = null,
+    docenteProfile: Record<string, unknown> | null = null,
+    alumnoProfile: Record<string, unknown> | null = null,
   ): Promise<void> {
     const { error } = await supabase.from("accounts").insert({
       email: email.toLowerCase().trim(),
@@ -115,6 +115,18 @@ export const db = {
       return [];
     }
     return data || [];
+  },
+
+  async getDocenteCategorias(email: string): Promise<Record<string, unknown>[]> {
+    const acc = await this.getAccount(email);
+    return (acc?.docente_profile?.notas_categorias as Record<string, unknown>[]) || [];
+  },
+
+  async saveDocenteCategorias(email: string, categorias: Record<string, unknown>[]): Promise<void> {
+    const acc = await this.getAccount(email);
+    if (!acc) return;
+    const docente_profile = { ...(acc.docente_profile || {}), notas_categorias: categorias };
+    await this.updateAccount(email, { docente_profile });
   },
 
   // --- HORARIOS (ALUMNO) ---

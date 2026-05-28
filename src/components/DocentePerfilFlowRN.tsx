@@ -54,6 +54,44 @@ type Props = {
   onClose: () => void;
 };
 
+const Header = ({
+  onBack,
+  showLogoRight = true,
+  centerTitle,
+}: {
+  onBack: () => void;
+  showLogoRight?: boolean;
+  centerTitle?: string;
+}) => (
+  <View style={hdrStyles.wrap}>
+    <View style={hdrStyles.row}>
+      <TouchableOpacity
+        style={hdrStyles.back}
+        onPress={onBack}
+        accessibilityLabel="Volver"
+      >
+        <Text style={hdrStyles.backTxt}>←</Text>
+      </TouchableOpacity>
+      {centerTitle ? (
+        <Text style={hdrStyles.centerTitle}>{centerTitle}</Text>
+      ) : (
+        <View style={hdrStyles.spacer} />
+      )}
+      {showLogoRight ? (
+        <Image
+          accessibilityLabel="Logo Locker"
+          alt=""
+          source={{ uri: "/logo.png" }}
+          style={hdrStyles.logo}
+          resizeMode="contain"
+        />
+      ) : (
+        <View style={hdrStyles.logoPlaceholder} />
+      )}
+    </View>
+  </View>
+);
+
 export default function DocentePerfilFlowRN({ onClose }: Props) {
   const [screen, setScreen] = useState<Screen>("intro");
   const [formOrigin, setFormOrigin] = useState<FormOrigin>("intro");
@@ -245,43 +283,6 @@ export default function DocentePerfilFlowRN({ onClose }: Props) {
     }
   }
 
-  const Header = ({
-    onBack,
-    showLogoRight = true,
-    centerTitle,
-  }: {
-    onBack: () => void;
-    showLogoRight?: boolean;
-    centerTitle?: string;
-  }) => (
-    <View style={hdrStyles.wrap}>
-      <View style={hdrStyles.row}>
-        <TouchableOpacity
-          style={hdrStyles.back}
-          onPress={onBack}
-          accessibilityLabel="Volver"
-        >
-          <Text style={hdrStyles.backTxt}>←</Text>
-        </TouchableOpacity>
-        {centerTitle ? (
-          <Text style={hdrStyles.centerTitle}>{centerTitle}</Text>
-        ) : (
-          <View style={hdrStyles.spacer} />
-        )}
-        {showLogoRight ? (
-          <Image
-            accessibilityLabel="Logo Locker"
-            alt=""
-            source={{ uri: "/logo.png" }}
-            style={hdrStyles.logo}
-            resizeMode="contain"
-          />
-        ) : (
-          <View style={hdrStyles.logoPlaceholder} />
-        )}
-      </View>
-    </View>
-  );
 
   const hiddenFileInput = (
     <input

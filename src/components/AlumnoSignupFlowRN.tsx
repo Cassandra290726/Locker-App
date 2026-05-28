@@ -111,6 +111,15 @@ export default function AlumnoSignupFlowRN({ onBack, onRegistered }: Props) {
         password2: getPasswordMismatchError(password, password2) ?? undefined,
       };
       setErrs(next);
+      if (typeof window !== "undefined") {
+        let errStr = "Corrige los siguientes errores:\n";
+        if (next.nombre) errStr += "- " + next.nombre + "\n";
+        if (next.email) errStr += "- " + next.email + "\n";
+        if (next.password) errStr += "- " + next.password + "\n";
+        if (next.password2) errStr += "- " + next.password2 + "\n";
+        if (!errStr.includes("-")) errStr += "- Campos incompletos\n";
+        window.alert(errStr);
+      }
       return;
     }
     setShowIncomplete(false);
@@ -127,6 +136,15 @@ export default function AlumnoSignupFlowRN({ onBack, onRegistered }: Props) {
         turno: getTurnoInputError(turno) ?? undefined,
       };
       setErrs(next);
+      if (typeof window !== "undefined") {
+        let errStr = "Corrige los siguientes errores:\n";
+        if (next.institucion) errStr += "- " + next.institucion + "\n";
+        if (next.municipio) errStr += "- " + next.municipio + "\n";
+        if (next.plantel) errStr += "- " + next.plantel + "\n";
+        if (next.turno) errStr += "- " + next.turno + "\n";
+        if (!errStr.includes("-")) errStr += "- Campos incompletos\n";
+        window.alert(errStr);
+      }
       return;
     }
     setShowIncomplete(false);
@@ -236,7 +254,7 @@ export default function AlumnoSignupFlowRN({ onBack, onRegistered }: Props) {
             label="Siguiente"
             variant="alumno"
             onPress={goStep2}
-            disabled={!canStep1 || loading}
+            disabled={loading}
           />
         </View>
       </View>
@@ -280,7 +298,7 @@ export default function AlumnoSignupFlowRN({ onBack, onRegistered }: Props) {
                 padding: "14px 16px",
                 fontSize: 16,
                 borderRadius: 12,
-                border: errs.municipio ? "2px solid #FF7F96" : "1px solid #e7e5e4",
+                border: errs.municipio ? "2px solid #EF5B5B" : "1px solid #e7e5e4",
                 backgroundColor: "#fff",
                 color: municipio ? LOCKER.text : "#78716c",
                 fontFamily: FONT_ROUNDED,
@@ -327,7 +345,7 @@ export default function AlumnoSignupFlowRN({ onBack, onRegistered }: Props) {
           label={loading ? "Registrando…" : "Siguiente"}
           variant="alumno"
           onPress={() => void submitRegister()}
-          disabled={!canStep2 || loading}
+          disabled={loading}
           loading={loading}
         />
       </View>
@@ -367,7 +385,7 @@ const styles = RNStyleSheet.create({
     fontFamily: FONT_ROUNDED,
   },
   inputErr: {
-    borderColor: "#FF7F96",
+    borderColor: "#EF5B5B",
     borderWidth: 2,
   },
   selectWrap: {

@@ -21,6 +21,7 @@ import type {
   NotaDocente,
   TipoNotaDocente,
 } from "@/lib/notasShared";
+import { GRADIENTS } from "@/lib/lockerTheme";
 
 type Props = {
   categorias: NotaCategoria[];
@@ -134,12 +135,11 @@ export default function DocenteNotaEditorScreenRN({
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => void guardar()}
-          style={styles.iconBtn}
+          style={[styles.saveBtnTop, saving && { opacity: 0.6 }]}
           disabled={saving}
           activeOpacity={0.75}
-          accessibilityLabel="Guardar"
         >
-          <Text style={styles.checkMark}>{saving ? "…" : "✓"}</Text>
+          <Text style={styles.saveBtnTopText}>{saving ? "…" : "Guardar"}</Text>
         </TouchableOpacity>
       </View>
 
@@ -290,8 +290,17 @@ const styles = RNStyleSheet.create({
     color: "#806b63",
     fontWeight: "600",
   },
-  checkMark: {
-    fontSize: 22,
+  saveBtnTop: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    backgroundColor: "#C9A7EB",
+    backgroundImage: GRADIENTS.purple,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+  },
+  saveBtnTopText: {
+    fontSize: 14,
     fontWeight: "800",
     color: "#806b63",
   },

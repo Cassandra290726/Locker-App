@@ -46,7 +46,7 @@ export default function PasswordFieldRN({
         accessibilityLabel={visible ? "Ocultar contraseña" : "Mostrar contraseña"}
         activeOpacity={0.7}
       >
-        <Text style={styles.toggleIcon}>{visible ? "🙈" : "👁"}</Text>
+        <Text style={styles.toggleIcon}>{visible ? "🙈" : "👁️"}</Text>
       </TouchableOpacity>
     </View>
   );

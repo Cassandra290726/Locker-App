@@ -11,16 +11,20 @@ import {
 } from "react-native-web";
 
 import {
+  actualizarClaseAlumno,
   eliminarClaseAlumno,
   fetchClasesAlumno,
+  registrarClaseAlumno,
 } from "@/lib/alumnoHorarioClient";
 import {
   COLUMNAS_DIA_HORARIO,
   FRANJAS_DOCENTE,
   claseSolapaFranja,
+  parseHoraAMinutos,
   type DocenteClaseGuardada,
   type DiaCalendarioKey,
 } from "@/lib/horarioShared";
+import { GRADIENTS } from "@/lib/lockerTheme";
 
 type GridMode = "idle" | "delete";
 
@@ -62,23 +66,48 @@ export default function AlumnoHorarioGridScreenRN({
     );
   }
 
-  function tapClase(c: DocenteClaseGuardada) {
+  function tapClase(c: DocenteClaseGuardada, franja?: (typeof FRANJAS_DOCENTE)[number]) {
     if (mode === "idle") {
       setSelectedId((prev) => (prev === c.id ? null : c.id));
       return;
     }
-    if (mode === "delete") {
+    if (mode === "delete" && franja) {
       const ok =
         typeof window !== "undefined"
-          ? window.confirm(`¿Eliminar solo esta clase: «${c.materia}»?`)
+          ? window.confirm(`¿Eliminar solo esta hora (${franja.horaInicio} - ${franja.horaFinal}) de la clase: «${c.materia}»?`)
           : false;
       if (!ok) return;
       void (async () => {
-        const res = await eliminarClaseAlumno(c.id);
-        if (res.ok) {
-          setSelectedId((cur) => (cur === c.id ? null : cur));
-          await reload();
+        const c0 = parseHoraAMinutos(c.horaInicio)!;
+        const c1 = parseHoraAMinutos(c.horaFinal)!;
+        const f0 = parseHoraAMinutos(franja.horaInicio)!;
+        const f1 = parseHoraAMinutos(franja.horaFinal)!;
+
+        // Tolerancia si el usuario puso un horario que no cuadra exacto pero solapa:
+        // Consideramos que borra el extremo si es el primer o último bloque que toca.
+        if (c0 >= f0 && c1 <= f1) {
+          // La clase cabe entera en la franja, o es exacta
+          await eliminarClaseAlumno(c.id);
+        } else if (c0 >= f0 && c0 < f1) {
+          // Toca el inicio
+          await actualizarClaseAlumno(c.id, { ...c, horaInicio: franja.horaFinal });
+        } else if (c1 > f0 && c1 <= f1) {
+          // Toca el final
+          await actualizarClaseAlumno(c.id, { ...c, horaFinal: franja.horaInicio });
+        } else {
+          // Está en el medio, partimos en dos
+          await actualizarClaseAlumno(c.id, { ...c, horaFinal: franja.horaInicio });
+          await registrarClaseAlumno({
+            materia: c.materia,
+            dia: c.dia,
+            horaInicio: franja.horaFinal,
+            horaFinal: c.horaFinal,
+            salon: c.salon,
+          });
         }
+
+        setSelectedId((cur) => (cur === c.id ? null : cur));
+        await reload();
       })();
     }
   }
@@ -182,7 +211,7 @@ export default function AlumnoHorarioGridScreenRN({
                               key={`${c.id}-${col.key}-${fi}`}
                               style={chipStyle}
                               activeOpacity={0.75}
-                              onPress={() => tapClase(c)}
+                              onPress={() => tapClase(c, franja)}
                             >
                               {chipInner}
                             </TouchableOpacity>
@@ -433,6 +462,7 @@ const styles = RNStyleSheet.create({
   },
   btnAgregar: {
     backgroundColor: "#CEFFB4",
+    backgroundImage: GRADIENTS.green,
   },
   btnEliminar: {
     borderWidth: 2,
@@ -441,6 +471,7 @@ const styles = RNStyleSheet.create({
   },
   btnEliminarOn: {
     backgroundColor: "#FFE4E9",
+    backgroundImage: GRADIENTS.pink,
   },
   footerBtnText: {
     fontWeight: "700",

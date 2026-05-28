@@ -124,7 +124,7 @@ function SplashGateInner() {
         return;
       }
       setPhase(initial ?? "login");
-    }, 2000);
+    }, 1000);
     return () => window.clearTimeout(t);
   }, [searchParams]);
 

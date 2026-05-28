@@ -6,6 +6,14 @@ export type FranjaHoraria = {
 };
 
 export const FRANJAS_DOCENTE: FranjaHoraria[] = [
+  { label: "7:00 - 7:50", horaInicio: "07:00", horaFinal: "07:50" },
+  { label: "7:50 - 8:40", horaInicio: "07:50", horaFinal: "08:40" },
+  { label: "8:40 - 9:30", horaInicio: "08:40", horaFinal: "09:30" },
+  { label: "9:30 - 10:00", horaInicio: "09:30", horaFinal: "10:00" },
+  { label: "10:00 - 10:50", horaInicio: "10:00", horaFinal: "10:50" },
+  { label: "10:50 - 11:40", horaInicio: "10:50", horaFinal: "11:40" },
+  { label: "11:40 - 12:30", horaInicio: "11:40", horaFinal: "12:30" },
+  { label: "12:30 - 1:20", horaInicio: "12:30", horaFinal: "13:20" },
   { label: "1:30 - 2:20", horaInicio: "13:30", horaFinal: "14:20" },
   { label: "2:20 - 3:10", horaInicio: "14:20", horaFinal: "15:10" },
   { label: "3:10 - 4:00", horaInicio: "15:10", horaFinal: "16:00" },

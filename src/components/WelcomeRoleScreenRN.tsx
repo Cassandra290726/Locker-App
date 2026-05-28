@@ -40,6 +40,14 @@ export default function WelcomeRoleScreenRN({ role, email, onContinue }: Props) 
 }
 
 const styles = RNStyleSheet.create({
+  btnDocente: {
+    backgroundColor: "#FF7F96",
+    backgroundImage: GRADIENTS.docente,
+  },
+  btnAlumno: {
+    backgroundColor: "#CEFFB4",
+    backgroundImage: GRADIENTS.alumno,
+  },
   root: {
     flex: 1,
     minHeight: "100vh",

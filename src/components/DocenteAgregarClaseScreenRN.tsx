@@ -15,6 +15,7 @@ import {
   fetchClasesDocente,
   registrarClaseDocente,
 } from "@/lib/horarioClient";
+import { GRADIENTS } from "@/lib/lockerTheme";
 import {
   COLUMNAS_DIA,
   DIAS_VALIDOS_AYUDA,
@@ -204,7 +205,7 @@ export default function DocenteAgregarClaseScreenRN({
           disabled={loading}
           activeOpacity={0.85}
         >
-          <Text style={styles.saveText}>{loading ? "…" : "Registrar"}</Text>
+          <Text style={styles.saveText}>{loading ? "…" : "Guardar"}</Text>
         </TouchableOpacity>
       </View>
     </DocenteFlowLayout>
@@ -309,7 +310,8 @@ const styles = RNStyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: "#B6F0FF",
+    backgroundColor: "#C9A7EB",
+    backgroundImage: GRADIENTS.purple,
     alignItems: "center",
   },
   saveText: {

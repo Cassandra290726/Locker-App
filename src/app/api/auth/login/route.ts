@@ -26,14 +26,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "INVALID_CREDENTIALS" }, { status: 401 });
   }
 
-  const account = await verifyCredentials(email, password);
-  if (!account) {
-    return NextResponse.json({ ok: false, error: "INVALID_CREDENTIALS" }, { status: 401 });
-  }
+  try {
+    const account = await verifyCredentials(email, password);
+    if (!account) {
+      return NextResponse.json({ ok: false, error: "INVALID_CREDENTIALS" }, { status: 401 });
+    }
 
-  const normalized = normalizeEmail(email);
-  const token = await createSessionToken({ email: normalized, role: account.role });
-  const res = NextResponse.json({ ok: true });
-  res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions);
-  return res;
+    const normalized = normalizeEmail(email);
+    const token = await createSessionToken({ email: normalized, role: account.role });
+    const res = NextResponse.json({ ok: true });
+    res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions);
+    return res;
+  } catch (err) {
+    console.error("Error inesperado en login:", err);
+    return NextResponse.json({ ok: false, error: "INTERNAL_SERVER_ERROR" }, { status: 500 });
+  }
 }

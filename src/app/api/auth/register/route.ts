@@ -101,7 +101,8 @@ export async function POST(request: Request) {
     if (err instanceof Error && err.message === "EMAIL_TAKEN") {
       return NextResponse.json({ ok: false, error: "EMAIL_TAKEN" }, { status: 409 });
     }
-    throw err;
+    console.error("Error inesperado en registro:", err);
+    return NextResponse.json({ ok: false, error: "INTERNAL_SERVER_ERROR" }, { status: 500 });
   }
 
   const normalized = normalizeEmail(email);

@@ -55,7 +55,7 @@ export async function register(
   role: UserRole,
   profiles?: { docenteProfile?: DocenteProfile; alumnoProfile?: AlumnoProfile },
 ): Promise<
-  | { ok: true; verificationEmailSent?: boolean; devVerificationCode?: string }
+  | { ok: true }
   | { ok: false; error: string }
 > {
   const res = await fetch("/api/auth/register", {
@@ -79,8 +79,6 @@ export async function register(
   if (res.ok && data.ok) {
     return {
       ok: true,
-      verificationEmailSent: data.verificationEmailSent,
-      devVerificationCode: data.devVerificationCode,
     };
   }
   return { ok: false, error: data.error ?? "REGISTER_FAILED" };

@@ -95,7 +95,6 @@ export default function DocenteSignupScreenRN({
   const [fieldErrors, setFieldErrors] = useState<FieldErrorsState>({});
   const [showIncomplete, setShowIncomplete] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [verifyHint, setVerifyHint] = useState("");
 
   const tienenDuplicado = useMemo(
     () => schools.some((_, i) => escuelaDuplicadoEnIndice(schools, i)),
@@ -245,14 +244,6 @@ export default function DocenteSignupScreenRN({
     if (!result.ok) {
       setFieldErrors(validate(result.error === "EMAIL_TAKEN"));
       return;
-    }
-
-    if (result.verificationEmailSent) {
-      setVerifyHint("Revisa tu correo: enviamos un código de verificación.");
-    } else if (result.devVerificationCode) {
-      setVerifyHint(
-        `Código de verificación (desarrollo): ${result.devVerificationCode}`,
-      );
     }
 
     const session = await fetchSession();
@@ -428,14 +419,13 @@ export default function DocenteSignupScreenRN({
         </TouchableOpacity>
 
         <LockerIncompleteMsg show={showIncomplete && !canSubmit} />
-        {verifyHint ? <Text style={styles.verifyHint}>{verifyHint}</Text> : null}
       </ScrollView>
 
       <View style={styles.footer}>
         <View style={{ flex: 1, alignItems: "flex-end" }}>
           {loading && (
             <Text style={{ fontSize: 13, color: "#78716c", marginBottom: 6, textAlign: "right" }}>
-              Creando perfil... Se enviará un código de verificación a tu correo.
+              Creando perfil...
             </Text>
           )}
           <LockerGradientButton

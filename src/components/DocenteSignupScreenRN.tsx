@@ -12,6 +12,7 @@ import {
 } from "react-native-web";
 
 import PasswordFieldRN from "@/components/PasswordFieldRN";
+import SignupLoadingOverlay from "@/components/SignupLoadingOverlay";
 import {
   LockerGradientButton,
   LockerIncompleteMsg,
@@ -263,6 +264,7 @@ export default function DocenteSignupScreenRN({
 
   return (
     <View style={styles.root}>
+      <SignupLoadingOverlay visible={loading} />
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.headerSide}

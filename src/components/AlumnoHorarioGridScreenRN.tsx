@@ -16,6 +16,7 @@ import {
   fetchClasesAlumno,
   registrarClaseAlumno,
 } from "@/lib/alumnoHorarioClient";
+import { fetchTareasAlumno } from "@/lib/alumnoTareasClient";
 import {
   COLUMNAS_DIA_HORARIO,
   FRANJAS_DOCENTE,
@@ -23,26 +24,43 @@ import {
   parseHoraAMinutos,
   type DocenteClaseGuardada,
   type DiaCalendarioKey,
+  type FranjaHoraria,
 } from "@/lib/horarioShared";
 import { GRADIENTS } from "@/lib/lockerTheme";
+import type { AlumnoTareaPendiente } from "@/lib/tareasShared";
 
 type GridMode = "idle" | "delete";
+
+export type AlumnoHorarioClaseSlotCtx = {
+  clase: DocenteClaseGuardada;
+  entregaHoraInicio: string;
+  entregaHoraFinal: string;
+};
 
 type Props = {
   onBack: () => void;
   onAgregarClase: () => void;
   onEditClase: (id: string) => void;
+  onAgregarTarea: (ctx: AlumnoHorarioClaseSlotCtx) => void;
+  onVerTarea: (ctx: AlumnoHorarioClaseSlotCtx & { tareaId: string }) => void;
 };
 
 export default function AlumnoHorarioGridScreenRN({
   onBack,
   onAgregarClase,
   onEditClase,
+  onAgregarTarea,
+  onVerTarea,
 }: Props) {
   const [clases, setClases] = useState<DocenteClaseGuardada[]>([]);
   const [mode, setMode] = useState<GridMode>("idle");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheetClase, setSheetClase] = useState<DocenteClaseGuardada | null>(null);
+  const [sheetFranja, setSheetFranja] = useState<FranjaHoraria | null>(null);
+  const [tareasClase, setTareasClase] = useState<AlumnoTareaPendiente[]>([]);
+  const [tareasLoading, setTareasLoading] = useState(false);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -66,9 +84,32 @@ export default function AlumnoHorarioGridScreenRN({
     );
   }
 
+  async function openClaseSheet(
+    c: DocenteClaseGuardada,
+    franja: (typeof FRANJAS_DOCENTE)[number],
+  ) {
+    setSelectedId(c.id);
+    setSheetClase(c);
+    setSheetFranja(franja);
+    setSheetOpen(true);
+    setTareasLoading(true);
+    const list = await fetchTareasAlumno(c.id);
+    setTareasClase(list);
+    setTareasLoading(false);
+  }
+
+  function slotCtx(): AlumnoHorarioClaseSlotCtx | null {
+    if (!sheetClase) return null;
+    return {
+      clase: sheetClase,
+      entregaHoraInicio: sheetFranja?.horaInicio ?? sheetClase.horaInicio,
+      entregaHoraFinal: sheetFranja?.horaFinal ?? sheetClase.horaFinal,
+    };
+  }
+
   function tapClase(c: DocenteClaseGuardada, franja?: (typeof FRANJAS_DOCENTE)[number]) {
-    if (mode === "idle") {
-      setSelectedId((prev) => (prev === c.id ? null : c.id));
+    if (mode === "idle" && franja) {
+      void openClaseSheet(c, franja);
       return;
     }
     if (mode === "delete" && franja) {
@@ -133,8 +174,8 @@ export default function AlumnoHorarioGridScreenRN({
   function bannerText(): string | null {
     if (mode === "delete")
       return "Toca el cuadro de la clase que quieres eliminar (solo esa entrada).";
-    if (selectedId) return "Clase seleccionada. Toca el lápiz para editarla.";
-    return null;
+    if (selectedId) return "Clase seleccionada. Toca el lápiz para editarla o toca otra celda para ver tareas.";
+    return "Toca una clase en el horario para ver detalles y agregar tareas pendientes.";
   }
 
   const banner = bannerText();
@@ -240,6 +281,85 @@ export default function AlumnoHorarioGridScreenRN({
         </ScrollView>
       </ScrollView>
 
+      {sheetOpen && sheetClase ? (
+        <View style={styles.sheetOverlay}>
+          <TouchableOpacity
+            style={styles.sheetBackdrop}
+            onPress={() => setSheetOpen(false)}
+            activeOpacity={1}
+          />
+          <View style={styles.sheet}>
+            <TouchableOpacity
+              style={styles.sheetHandle}
+              onPress={() => setSheetOpen(false)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.sheetArrow}>▼</Text>
+            </TouchableOpacity>
+            <Text style={styles.sheetTitle}>Detalles de la clase</Text>
+            <View style={styles.sheetBody}>
+              <Text style={styles.detailLine}>
+                <Text style={styles.detailLabel}>Nombre: </Text>
+                {sheetClase.materia}
+              </Text>
+              <Text style={styles.detailLine}>
+                <Text style={styles.detailLabel}>Hora inicio: </Text>
+                {sheetClase.horaInicio}
+              </Text>
+              <Text style={styles.detailLine}>
+                <Text style={styles.detailLabel}>Hora fin: </Text>
+                {sheetClase.horaFinal}
+              </Text>
+              {sheetFranja ? (
+                <Text style={styles.detailLine}>
+                  <Text style={styles.detailLabel}>Franja: </Text>
+                  {sheetFranja.label}
+                </Text>
+              ) : null}
+            </View>
+
+            {tareasLoading ? (
+              <Text style={styles.tareasHint}>Cargando tareas…</Text>
+            ) : tareasClase.length > 0 ? (
+              <View style={styles.tareasList}>
+                <Text style={styles.tareasListTitle}>Tareas pendientes</Text>
+                {tareasClase.map((t) => (
+                  <TouchableOpacity
+                    key={t.id}
+                    style={styles.tareaItem}
+                    onPress={() => {
+                      const ctx = slotCtx();
+                      if (!ctx) return;
+                      setSheetOpen(false);
+                      onVerTarea({ ...ctx, tareaId: t.id });
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.tareaItemName}>{t.nombre}</Text>
+                    <Text style={styles.tareaItemEntrega}>
+                      Entrega: {t.entregaHoraInicio} – {t.entregaHoraFinal}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : null}
+
+            <TouchableOpacity
+              style={styles.btnAgregarTarea}
+              onPress={() => {
+                const ctx = slotCtx();
+                if (!ctx) return;
+                setSheetOpen(false);
+                onAgregarTarea(ctx);
+              }}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.btnAgregarTareaText}>Agregar tarea pendiente</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : null}
+
       <View style={styles.footerBtns}>
         <TouchableOpacity
           style={[styles.footerBtn, styles.btnAgregar]}
@@ -343,7 +463,7 @@ const styles = RNStyleSheet.create({
   },
   table: {
     minWidth: 640,
-    paddingBottom: 12,
+    paddingBottom: 120,
   },
   row: {
     flexDirection: "row",
@@ -492,5 +612,93 @@ const styles = RNStyleSheet.create({
   },
   iconPencil: {
     fontSize: 20,
+  },
+  sheetOverlay: {
+    position: "fixed",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    top: 0,
+    justifyContent: "flex-end",
+    zIndex: 100,
+  },
+  sheetBackdrop: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.15)",
+  },
+  sheet: {
+    backgroundColor: "#B6F0FF",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 24,
+    paddingBottom: 28,
+    paddingTop: 8,
+    maxWidth: 480,
+    alignSelf: "center",
+    width: "100%",
+    maxHeight: "70vh",
+  },
+  sheetHandle: {
+    alignItems: "center",
+    paddingVertical: 8,
+  },
+  sheetArrow: { fontSize: 18, color: "#1c1917", fontWeight: "700" },
+  sheetTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#1c1917",
+    textAlign: "center",
+    marginBottom: 12,
+  },
+  sheetBody: { gap: 10, marginBottom: 16 },
+  detailLine: { fontSize: 16, color: "#292524" },
+  detailLabel: { fontWeight: "800" },
+  tareasHint: {
+    fontSize: 14,
+    color: "#44403c",
+    textAlign: "center",
+    marginBottom: 12,
+  },
+  tareasList: {
+    gap: 8,
+    marginBottom: 16,
+    maxHeight: 160,
+  },
+  tareasListTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#1c1917",
+    marginBottom: 4,
+  },
+  tareaItem: {
+    backgroundColor: "rgba(255,255,255,0.55)",
+    borderRadius: 10,
+    padding: 10,
+  },
+  tareaItemName: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#1c1917",
+  },
+  tareaItemEntrega: {
+    fontSize: 12,
+    color: "#44403c",
+    marginTop: 4,
+  },
+  btnAgregarTarea: {
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    backgroundColor: "#CEFFB4",
+    backgroundImage: GRADIENTS.green,
+  },
+  btnAgregarTareaText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#1c1917",
   },
 });

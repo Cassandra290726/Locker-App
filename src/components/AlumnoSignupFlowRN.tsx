@@ -10,6 +10,7 @@ import {
 
 import AlumnoRegistroHeader from "@/components/AlumnoRegistroHeader";
 import PasswordFieldRN from "@/components/PasswordFieldRN";
+import SignupLoadingOverlay from "@/components/SignupLoadingOverlay";
 import {
   LockerGradientButton,
   LockerIncompleteMsg,
@@ -178,6 +179,7 @@ export default function AlumnoSignupFlowRN({ onBack, onRegistered }: Props) {
   if (step === 1) {
     return (
       <View style={styles.root}>
+        <SignupLoadingOverlay visible={loading} />
         <AlumnoRegistroHeader onBack={onBack} />
         <RoleBadge role="alumno" />
         <View style={styles.spacer} />
@@ -254,6 +256,7 @@ export default function AlumnoSignupFlowRN({ onBack, onRegistered }: Props) {
 
   return (
     <View style={styles.root}>
+      <SignupLoadingOverlay visible={loading} />
       <AlumnoRegistroHeader
         onBack={() => {
           setStep(1);

@@ -162,12 +162,11 @@ export default function AlumnoSignupFlowRN({ onBack, onRegistered }: Props) {
     setLoading(false);
 
     if (!result.ok) {
-      setErrs({
-        email:
-          result.error === "EMAIL_TAKEN"
-            ? "Este correo ya está registrado."
-            : getEmailInputError(email) ?? undefined,
-      });
+      if (result.error === "EMAIL_TAKEN") {
+        setErrs({ email: "Este correo ya está registrado." });
+      } else {
+        window.alert("Error de conexión a la base de datos o llave incorrecta. Verifica tu Supabase URL y SERVICE_ROLE KEY.");
+      }
       setStep(1);
       return;
     }

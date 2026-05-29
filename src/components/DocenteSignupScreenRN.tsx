@@ -243,7 +243,11 @@ export default function DocenteSignupScreenRN({
     setLoading(false);
 
     if (!result.ok) {
-      setFieldErrors(validate(result.error === "EMAIL_TAKEN"));
+      if (result.error === "EMAIL_TAKEN") {
+        setFieldErrors(validate(true));
+      } else {
+        window.alert("Error de conexión a la base de datos o llave incorrecta. Verifica tu Supabase URL y SERVICE_ROLE KEY.");
+      }
       return;
     }
 

@@ -3,6 +3,7 @@
 :root {
   --background: #fffbeb;
   --foreground: #806b63;
+  --font-locker: 'Nunito', sans-serif;
 }
 
 @theme inline {

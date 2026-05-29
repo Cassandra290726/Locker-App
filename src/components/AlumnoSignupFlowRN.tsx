@@ -341,13 +341,20 @@ export default function AlumnoSignupFlowRN({ onBack, onRegistered }: Props) {
         {verifyHint ? <Text style={styles.verifyHint}>{verifyHint}</Text> : null}
       </View>
       <View style={styles.footerRow}>
-        <LockerGradientButton
-          label={loading ? "Registrando…" : "Siguiente"}
-          variant="alumno"
-          onPress={() => void submitRegister()}
-          disabled={loading}
-          loading={loading}
-        />
+        <View style={{ flex: 1, alignItems: "flex-end" }}>
+          {loading && (
+            <Text style={{ fontSize: 13, color: "#78716c", marginBottom: 6, textAlign: "right" }}>
+              Creando perfil... Se enviará un código de verificación a tu correo.
+            </Text>
+          )}
+          <LockerGradientButton
+            label={loading ? "Registrando…" : "Siguiente"}
+            variant="alumno"
+            onPress={() => void submitRegister()}
+            disabled={loading}
+            loading={loading}
+          />
+        </View>
       </View>
     </View>
   );

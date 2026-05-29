@@ -432,13 +432,20 @@ export default function DocenteSignupScreenRN({
       </ScrollView>
 
       <View style={styles.footer}>
-        <LockerGradientButton
-          label={loading ? "Guardando…" : "Siguiente"}
-          variant="docente"
-          onPress={() => void submit()}
-          disabled={loading}
-          loading={loading}
-        />
+        <View style={{ flex: 1, alignItems: "flex-end" }}>
+          {loading && (
+            <Text style={{ fontSize: 13, color: "#78716c", marginBottom: 6, textAlign: "right" }}>
+              Creando perfil... Se enviará un código de verificación a tu correo.
+            </Text>
+          )}
+          <LockerGradientButton
+            label={loading ? "Procesando…" : "Siguiente"}
+            variant="docente"
+            onPress={() => void submit()}
+            disabled={loading}
+            loading={loading}
+          />
+        </View>
       </View>
     </View>
   );

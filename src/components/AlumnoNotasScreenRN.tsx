@@ -12,6 +12,8 @@ import {
 } from "react-native-web";
 
 import DocenteNotaEditorScreenRN from "@/components/DocenteNotaEditorScreenRN";
+import NotasCategoriasScrollRN from "@/components/NotasCategoriasScrollRN";
+import { GRADIENTS } from "@/lib/lockerTheme";
 import {
   eliminarNotaAlumnoApi,
   fetchAlumnoNotas,
@@ -129,58 +131,12 @@ export default function AlumnoNotasScreenRN({ onBack }: Props) {
         />
       </View>
 
-      <View style={styles.catRowOuter}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.catScroll}
-          contentContainerStyle={styles.catScrollContent}
-        >
-          <TouchableOpacity
-            onPress={() => setFilterId(FILTRO_TODAS_ID)}
-            style={[
-              styles.pill,
-              styles.pillTodas,
-              filterId === FILTRO_TODAS_ID && styles.pillSelected,
-            ]}
-            activeOpacity={0.85}
-          >
-            <Text
-              style={[
-                styles.pillText,
-                filterId === FILTRO_TODAS_ID && styles.pillTextSelected,
-              ]}
-            >
-              Todas
-            </Text>
-          </TouchableOpacity>
-
-          {data.categorias.map((c) => {
-            const on = filterId === c.id;
-            return (
-              <TouchableOpacity
-                key={c.id}
-                onPress={() => setFilterId(c.id)}
-                style={[styles.pill, { backgroundColor: c.color }, on && styles.pillRing]}
-                activeOpacity={0.88}
-              >
-                <Text style={styles.pillText} numberOfLines={1}>
-                  {c.nombre}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-
-          <TouchableOpacity
-            style={styles.pencilBtn}
-            onPress={abrirEditorCategorias}
-            activeOpacity={0.75}
-            accessibilityLabel="Editar categorías"
-          >
-            <Text style={styles.pencilIcon}>✏️</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </View>
+      <NotasCategoriasScrollRN
+        categorias={data.categorias}
+        filterId={filterId}
+        onFilterChange={setFilterId}
+        onEditCategorias={abrirEditorCategorias}
+      />
 
       <Text style={styles.sectionLabel}>Notas</Text>
 
@@ -447,12 +403,13 @@ const styles = RNStyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 8,
-    backgroundColor: "#fee2e2",
+    backgroundColor: "#FE7F96",
+    backgroundImage: GRADIENTS.pinkCancel,
   },
   deleteBtnTxt: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#b91c1c",
+    color: "#1c1917",
   },
   cardTitle: {
     fontSize: 17,

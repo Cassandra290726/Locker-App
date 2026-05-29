@@ -75,6 +75,9 @@ export async function POST(request: Request) {
       ? (body.itemsLista as ItemListaNota[])
       : undefined,
   });
+  if (!nota) {
+    return NextResponse.json({ ok: false, error: "NOTA_VACIA" }, { status: 400 });
+  }
   return NextResponse.json({ ok: true, nota });
 }
 
@@ -128,6 +131,10 @@ export async function PATCH(request: Request) {
 
   const nota = await actualizarNotaAlumno(session.email, id, patch);
   if (!nota) {
+    const data = await getAlumnoNotasData(session.email);
+    if (!data.notas.some((n) => n.id === id)) {
+      return NextResponse.json({ ok: true, deleted: true });
+    }
     return NextResponse.json({ ok: false, error: "NOT_FOUND" }, { status: 404 });
   }
   return NextResponse.json({ ok: true, nota });

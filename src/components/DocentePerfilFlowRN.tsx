@@ -13,6 +13,7 @@ import {
 } from "react-native-web";
 
 import type { DocentePerfilPublico } from "@/lib/authShared";
+import { GRADIENTS } from "@/lib/lockerTheme";
 import {
   hayErroresPerfilPublico,
   validarPerfilPublico,
@@ -45,9 +46,17 @@ const gradSiNo = {
     "linear-gradient(165deg, #e5ffd8 0%, #CEFFB4 42%, #a8e890 100%)",
 } as const;
 
-const gradEliminarEditar = {
+const gradEliminar = {
+  backgroundImage: GRADIENTS.pinkCancel,
+} as const;
+
+const gradEditar = {
   backgroundImage:
     "linear-gradient(165deg, #d8f8ff 0%, #B6F0FF 42%, #7dd4ed 100%)",
+} as const;
+
+const gradAgregarPerfil = {
+  backgroundImage: GRADIENTS.purpleSave,
 } as const;
 
 type Props = {
@@ -425,7 +434,10 @@ export default function DocentePerfilFlowRN({ onClose }: Props) {
                 placeholderTextColor="#786660"
                 style={styles.materiaInputInner}
               />
-              <TouchableOpacity style={styles.materiaAdd} onPress={agregarEscuela}>
+              <TouchableOpacity
+                style={[styles.materiaAdd, gradAgregarPerfil]}
+                onPress={agregarEscuela}
+              >
                 <Text style={styles.materiaAddTxt}>Agregar</Text>
               </TouchableOpacity>
             </View>
@@ -447,7 +459,10 @@ export default function DocentePerfilFlowRN({ onClose }: Props) {
                 placeholderTextColor="#786660"
                 style={styles.materiaInputInner}
               />
-              <TouchableOpacity style={styles.materiaAdd} onPress={agregarMateria}>
+              <TouchableOpacity
+                style={[styles.materiaAdd, gradAgregarPerfil]}
+                onPress={agregarMateria}
+              >
                 <Text style={styles.materiaAddTxt}>Agregar</Text>
               </TouchableOpacity>
             </View>
@@ -627,7 +642,7 @@ export default function DocentePerfilFlowRN({ onClose }: Props) {
           </Text>
           <View style={{ height: 28 }} />
           <TouchableOpacity
-            style={[styles.choiceBtnWide, gradEliminarEditar]}
+            style={[styles.choiceBtnWide, gradSiNo]}
             onPress={() => void eliminarPerfil()}
             disabled={saving}
             activeOpacity={0.9}
@@ -636,7 +651,7 @@ export default function DocentePerfilFlowRN({ onClose }: Props) {
           </TouchableOpacity>
           <View style={{ height: 16 }} />
           <TouchableOpacity
-            style={[styles.choiceBtnWide, gradEliminarEditar]}
+            style={[styles.choiceBtnWide, gradSiNo]}
             onPress={() => setScreen("main")}
             activeOpacity={0.9}
           >
@@ -674,14 +689,14 @@ export default function DocentePerfilFlowRN({ onClose }: Props) {
         <View style={{ height: 24 }} />
         <View style={styles.twoBtns}>
           <TouchableOpacity
-            style={[styles.halfBtn, gradEliminarEditar]}
+            style={[styles.halfBtn, gradEliminar]}
             onPress={() => setScreen("deleteConfirm")}
             activeOpacity={0.88}
           >
             <Text style={styles.eliminarTxt}>Eliminar</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.halfBtn, gradEliminarEditar]}
+            style={[styles.halfBtn, gradEditar]}
             onPress={() => {
               aplicarPerfil({
                 apellidoPaterno,
@@ -900,12 +915,12 @@ const styles = RNStyleSheet.create({
     outlineStyle: "none",
   },
   materiaAdd: {
-    backgroundColor: "#806b63",
+    backgroundColor: "#C8A8EB",
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 10,
   },
-  materiaAddTxt: { color: "#FFFBDB", fontWeight: "700", fontSize: 13 },
+  materiaAddTxt: { color: "#1c1917", fontWeight: "700", fontSize: 13 },
   chipRow: {
     flexDirection: "row",
     alignItems: "center",

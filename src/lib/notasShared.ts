@@ -47,6 +47,21 @@ export function categoriasPorDefecto(): NotaCategoria[] {
   }));
 }
 
+/** Sin título real ni contenido (texto o ítems de lista con texto). */
+export function notaEstaVacia(
+  nota: Pick<NotaDocente, "titulo" | "contenido" | "tipo" | "itemsLista">,
+): boolean {
+  const titulo = nota.titulo.trim();
+  const tieneTitulo = titulo.length > 0 && titulo !== "Sin título";
+  if (tieneTitulo) return false;
+  if (nota.tipo === "texto") {
+    return !nota.contenido.trim();
+  }
+  const items = nota.itemsLista ?? [];
+  if (items.length === 0) return true;
+  return items.every((i) => !i.texto.trim());
+}
+
 export function asegurarEstructuraNotas(data: Partial<DocenteNotasData>): DocenteNotasData {
   const defaults = categoriasPorDefecto();
   let categorias = Array.isArray(data.categorias) ? [...data.categorias] : [];
@@ -92,7 +107,9 @@ export function asegurarEstructuraNotas(data: Partial<DocenteNotasData>): Docent
       createdAt: typeof n.createdAt === "string" ? n.createdAt : new Date().toISOString(),
       updatedAt: typeof n.updatedAt === "string" ? n.updatedAt : new Date().toISOString(),
     };
-  }).filter((n) => n.id.length > 0);
+  })
+    .filter((n) => n.id.length > 0)
+    .filter((n) => !notaEstaVacia(n));
   return { categorias, notas };
 }
 

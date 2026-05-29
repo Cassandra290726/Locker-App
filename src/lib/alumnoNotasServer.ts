@@ -5,6 +5,7 @@ import { randomUUID } from "crypto";
 import { normalizeEmail } from "@/lib/authShared";
 import {
   asegurarEstructuraNotas,
+  notaEstaVacia,
   type DocenteNotasData,
   type ItemListaNota,
   type NotaCategoria,
@@ -36,11 +37,19 @@ async function writeStore(store: Store) {
   await writeFile(NOTAS_FILE, JSON.stringify(store, null, 2), "utf8");
 }
 
+function sanitizarItemsLista(raw: ItemListaNota[] | undefined): ItemListaNota[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((it) => ({
+    id: it.id,
+    texto: typeof it.texto === "string" ? it.texto : "",
+    hecho: Boolean(it.hecho),
+  }));
+}
+
 export async function getAlumnoNotasData(email: string): Promise<DocenteNotasData> {
   const key = normalizeEmail(email);
   const store = await readStore();
-  const raw = store[key] ?? {};
-  const data = asegurarEstructuraNotas(raw);
+  const data = asegurarEstructuraNotas(store[key] ?? {});
   store[key] = data;
   await writeStore(store);
   return data;
@@ -75,20 +84,29 @@ export async function crearNotaAlumno(
     tipo?: TipoNotaDocente;
     itemsLista?: ItemListaNota[];
   },
-): Promise<NotaDocente> {
+): Promise<NotaDocente | null> {
   const key = normalizeEmail(email);
   const store = await readStore();
   const data = asegurarEstructuraNotas(store[key] ?? {});
   const now = new Date().toISOString();
-  const nota: NotaDocente = {
+  const tipo = input.tipo === "lista" ? "lista" : "texto";
+  const itemsLista = tipo === "lista" ? sanitizarItemsLista(input.itemsLista) : [];
+  const titulo = input.titulo.trim();
+  const contenido = tipo === "texto" ? input.contenido.trim() : "";
+  const candidata: NotaDocente = {
     id: randomUUID(),
     categoriaId: input.categoriaId,
-    tipo: input.tipo === "lista" ? "lista" : "texto",
-    titulo: input.titulo.trim() || "Sin título",
-    contenido: input.contenido,
-    itemsLista: input.itemsLista ?? [],
+    tipo,
+    titulo,
+    contenido,
+    itemsLista,
     createdAt: now,
     updatedAt: now,
+  };
+  if (notaEstaVacia(candidata)) return null;
+  const nota: NotaDocente = {
+    ...candidata,
+    titulo: titulo || "Sin título",
   };
   data.notas.push(nota);
   store[key] = data;
@@ -113,10 +131,40 @@ export async function actualizarNotaAlumno(
   const idx = data.notas.findIndex((n) => n.id === id);
   if (idx < 0) return null;
   const prev = data.notas[idx];
-  data.notas[idx] = {
+  const tipo = patch.tipo ?? prev.tipo;
+  const tituloRaw = patch.titulo !== undefined ? patch.titulo.trim() : prev.titulo.trim();
+  const contenido =
+    tipo === "texto"
+      ? patch.contenido !== undefined
+        ? patch.contenido.trim()
+        : prev.contenido.trim()
+      : "";
+  const itemsLista =
+    tipo === "lista"
+      ? patch.itemsLista !== undefined
+        ? sanitizarItemsLista(patch.itemsLista)
+        : prev.itemsLista
+      : [];
+
+  const candidata: NotaDocente = {
     ...prev,
-    ...patch,
-    titulo: patch.titulo !== undefined ? patch.titulo.trim() || "Sin título" : prev.titulo,
+    categoriaId: patch.categoriaId ?? prev.categoriaId,
+    tipo,
+    titulo: tituloRaw,
+    contenido,
+    itemsLista,
+  };
+
+  if (notaEstaVacia(candidata)) {
+    data.notas = data.notas.filter((n) => n.id !== id);
+    store[key] = data;
+    await writeStore(store);
+    return null;
+  }
+
+  data.notas[idx] = {
+    ...candidata,
+    titulo: tituloRaw || "Sin título",
     updatedAt: new Date().toISOString(),
   };
   store[key] = data;

@@ -585,13 +585,12 @@ const styles = RNStyleSheet.create({
     backgroundImage: GRADIENTS.green,
   },
   btnEliminar: {
-    borderWidth: 2,
-    borderColor: "#FF7F96",
-    backgroundColor: "#ffffff",
+    backgroundColor: "#FE7F96",
+    backgroundImage: GRADIENTS.pinkCancel,
   },
   btnEliminarOn: {
-    backgroundColor: "#FFE4E9",
-    backgroundImage: GRADIENTS.pink,
+    borderWidth: 2,
+    borderColor: "#1c1917",
   },
   footerBtnText: {
     fontWeight: "700",
@@ -601,10 +600,10 @@ const styles = RNStyleSheet.create({
   footerBtnTextEliminar: {
     fontWeight: "700",
     fontSize: 14,
-    color: "#b91c1c",
+    color: "#1c1917",
   },
   footerBtnTextEliminarOn: {
-    color: "#991b1b",
+    color: "#1c1917",
   },
   btnEditReady: {
     borderColor: "#2563eb",

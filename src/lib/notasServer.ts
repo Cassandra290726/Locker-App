@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { normalizeEmail } from "@/lib/authShared";
 import {
   asegurarEstructuraNotas,
+  notaEstaVacia,
   type DocenteNotasData,
   type ItemListaNota,
   type NotaCategoria,
@@ -30,6 +31,14 @@ export async function getDocenteNotasData(email: string): Promise<DocenteNotasDa
 
   if (categoriasRaw.length === 0) {
     await db.saveDocenteCategorias(norm, data.categorias);
+  }
+
+  const vacias = notas.filter((n) => notaEstaVacia(n));
+  if (vacias.length > 0) {
+    for (const v of vacias) {
+      await db.deleteNotaDocente(v.id, norm);
+    }
+    return { ...data, notas: data.notas.filter((n) => !notaEstaVacia(n)) };
   }
 
   return data;
@@ -73,7 +82,11 @@ export async function crearNotaDocente(
   
   const tituloFinal = input.titulo.trim();
   const contenidoFinal = tipo === "texto" ? input.contenido.trim() : "";
-  const isEmpty = !tituloFinal && (tipo === "texto" ? !contenidoFinal : itemsLista.length === 0);
+  const isEmpty =
+    !tituloFinal &&
+    (tipo === "texto"
+      ? !contenidoFinal
+      : itemsLista.length === 0 || itemsLista.every((i) => !i.texto.trim()));
   
   if (isEmpty) {
     return null; // Do not create empty note
@@ -131,7 +144,11 @@ export async function actualizarNotaDocente(
         : (cur.items_lista as unknown as ItemListaNota[]) || []
       : [];
 
-  const isEmpty = !titulo.trim() && (tipo === "texto" ? !contenido.trim() : itemsLista.length === 0);
+  const isEmpty =
+    !titulo.trim() &&
+    (tipo === "texto"
+      ? !contenido.trim()
+      : itemsLista.length === 0 || itemsLista.every((i) => !i.texto.trim()));
   if (isEmpty) {
     await eliminarNotaDocente(email, id);
     return null; // Return null to indicate it was removed

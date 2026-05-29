@@ -88,7 +88,6 @@ export default function AlumnoSignupFlowRN({ onBack, onRegistered }: Props) {
   const [errs, setErrs] = useState<Record<string, string | undefined>>({});
   const [showIncomplete, setShowIncomplete] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [verifyHint, setVerifyHint] = useState("");
 
   const canStep1 =
     !getNombreInputError(nombre) &&
@@ -171,14 +170,6 @@ export default function AlumnoSignupFlowRN({ onBack, onRegistered }: Props) {
       });
       setStep(1);
       return;
-    }
-
-    if (result.verificationEmailSent) {
-      setVerifyHint("Revisa tu correo: enviamos un código de verificación.");
-    } else if (result.devVerificationCode) {
-      setVerifyHint(
-        `Código de verificación (desarrollo): ${result.devVerificationCode}`,
-      );
     }
 
     const session = await fetchSession();
@@ -341,16 +332,22 @@ export default function AlumnoSignupFlowRN({ onBack, onRegistered }: Props) {
           />
         </LabeledField>
         <LockerIncompleteMsg show={showIncomplete && !canStep2} />
-        {verifyHint ? <Text style={styles.verifyHint}>{verifyHint}</Text> : null}
       </View>
       <View style={styles.footerRow}>
-        <LockerGradientButton
-          label={loading ? "Registrando…" : "Siguiente"}
-          variant="alumno"
-          onPress={() => void submitRegister()}
-          disabled={loading}
-          loading={loading}
-        />
+        <View style={{ flex: 1, alignItems: "flex-end" }}>
+          {loading && (
+            <Text style={{ fontSize: 13, color: "#78716c", marginBottom: 6, textAlign: "right" }}>
+              Creando perfil...
+            </Text>
+          )}
+          <LockerGradientButton
+            label={loading ? "Registrando…" : "Siguiente"}
+            variant="alumno"
+            onPress={() => void submitRegister()}
+            disabled={loading}
+            loading={loading}
+          />
+        </View>
       </View>
     </View>
   );

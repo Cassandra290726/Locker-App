@@ -21,12 +21,12 @@ export async function getDocenteNotasData(email: string): Promise<DocenteNotasDa
     tipo: n.tipo as TipoNotaDocente,
     titulo: n.titulo,
     contenido: n.contenido,
-    itemsLista: n.items_lista || [],
+    itemsLista: (n.items_lista as unknown as ItemListaNota[]) || [],
     createdAt: n.created_at,
     updatedAt: n.updated_at,
   }));
 
-  const data = asegurarEstructuraNotas({ categorias: categoriasRaw, notas });
+  const data = asegurarEstructuraNotas({ categorias: categoriasRaw as unknown as NotaCategoria[], notas });
 
   if (categoriasRaw.length === 0) {
     await db.saveDocenteCategorias(norm, data.categorias);
@@ -128,7 +128,7 @@ export async function actualizarNotaDocente(
     tipo === "lista"
       ? patch.itemsLista !== undefined
         ? sanitizarItemsLista(patch.itemsLista)
-        : cur.items_lista
+        : (cur.items_lista as unknown as ItemListaNota[]) || []
       : [];
 
   const isEmpty = !titulo.trim() && (tipo === "texto" ? !contenido.trim() : itemsLista.length === 0);

@@ -1,36 +1,7 @@
-import { mkdir, readFile, writeFile } from "fs/promises";
-import path from "path";
+import { db } from "@/lib/db";
+
 import { randomInt } from "crypto";
-
 import { normalizeEmail } from "@/lib/authShared";
-
-const DATA_DIR = path.join(process.cwd(), "data");
-const CODES_FILE = path.join(DATA_DIR, "email_verification.json");
-
-type CodeEntry = {
-  code: string;
-  role: string;
-  createdAt: string;
-};
-
-async function ensureDir() {
-  await mkdir(DATA_DIR, { recursive: true });
-}
-
-async function readCodes(): Promise<Record<string, CodeEntry>> {
-  try {
-    const raw = await readFile(CODES_FILE, "utf8");
-    const p = JSON.parse(raw) as Record<string, CodeEntry>;
-    return p && typeof p === "object" ? p : {};
-  } catch {
-    return {};
-  }
-}
-
-async function writeCodes(codes: Record<string, CodeEntry>) {
-  await ensureDir();
-  await writeFile(CODES_FILE, JSON.stringify(codes, null, 2), "utf8");
-}
 
 function generateCode(): string {
   return String(randomInt(100000, 999999));
@@ -46,9 +17,8 @@ export async function sendRegistrationAuthEmail(
 ): Promise<{ ok: true; devCode?: string; emailed: boolean }> {
   const key = normalizeEmail(email);
   const code = generateCode();
-  const codes = await readCodes();
-  codes[key] = { code, role, createdAt: new Date().toISOString() };
-  await writeCodes(codes);
+  
+  await db.saveVerification(key, code, role);
 
   const roleLabel = role === "docente" ? "Docente" : "Alumno/a";
   const subject = "Locker — Código de verificación";

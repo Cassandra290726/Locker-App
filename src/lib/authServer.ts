@@ -64,8 +64,8 @@ export async function getAccount(
     passwordHash: data.password_hash,
     role: data.role,
     verified: data.verified,
-    docenteProfile: data.docente_profile || undefined,
-    alumnoProfile: data.alumno_profile || undefined,
+    docenteProfile: (data.docente_profile as unknown as DocenteProfile) || undefined,
+    alumnoProfile: (data.alumno_profile as unknown as AlumnoProfile) || undefined,
   };
 }
 

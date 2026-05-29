@@ -121,16 +121,22 @@ export default function LoginScreenRN({
         >
           <Text style={styles.btnGhostText}>Registrarme</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.btnPrimary, loading && styles.btnDisabled]}
-          onPress={() => void tryNext()}
-          activeOpacity={0.85}
-          // disabled={loading} // Permitir clic para ver alertas
-        >
-          <Text style={styles.btnPrimaryText}>
-            {loading ? "Entrando…" : "Iniciar sesión"}
-          </Text>
-        </TouchableOpacity>
+        <View style={{ flex: 1, alignItems: "flex-end" }}>
+          {loading && (
+            <Text style={{ fontSize: 13, color: "#78716c", marginBottom: 6, textAlign: "right" }}>
+              Verificando credenciales...
+            </Text>
+          )}
+          <TouchableOpacity
+            style={[styles.btnPrimary, loading && styles.btnDisabled]}
+            onPress={() => void tryNext()}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.btnPrimaryText}>
+              {loading ? "Entrando…" : "Iniciar sesión"}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );

@@ -8,6 +8,9 @@ import AlumnoDocenteHorarioScreenRN from "@/components/AlumnoDocenteHorarioScree
 import AlumnoDocentePerfilScreenRN from "@/components/AlumnoDocentePerfilScreenRN";
 import AlumnoDocentesListScreenRN from "@/components/AlumnoDocentesListScreenRN";
 import AlumnoHorarioGridScreenRN from "@/components/AlumnoHorarioGridScreenRN";
+import AlumnoTareaClaseScreenRN, {
+  type AlumnoTareaClaseCtx,
+} from "@/components/AlumnoTareaClaseScreenRN";
 import AlumnoHubScreenRN from "@/components/AlumnoHubScreenRN";
 import AlumnoNotasScreenRN from "@/components/AlumnoNotasScreenRN";
 import AlumnoSignupFlowRN from "@/components/AlumnoSignupFlowRN";
@@ -40,6 +43,7 @@ type Phase =
   | "alumno_main"
   | "alumno_agregar_clase"
   | "alumno_horario_grid"
+  | "alumno_tarea_clase"
   | "alumno_notas"
   | "alumno_docentes"
   | "alumno_docente_perfil"
@@ -59,6 +63,20 @@ type AlumnoClaseFormCtx = {
 type DocenteClaseFormCtx = {
   cancelTo: "agenda" | "grid";
   editingId: string | null;
+};
+
+const defaultTareaCtx: AlumnoTareaClaseCtx = {
+  clase: {
+    id: "",
+    materia: "",
+    dia: "L",
+    horaInicio: "",
+    horaFinal: "",
+    salon: "",
+  },
+  tareaId: null,
+  entregaHoraInicio: "",
+  entregaHoraFinal: "",
 };
 
 function welcomeStorageKey(email: string) {
@@ -101,6 +119,7 @@ function SplashGateInner() {
     cancelTo: "agenda",
     editingId: null,
   });
+  const [tareaCtx, setTareaCtx] = useState<AlumnoTareaClaseCtx>(defaultTareaCtx);
 
   function goAfterAuth(user: SessionUser) {
     setSessionUser(user);
@@ -240,6 +259,33 @@ function SplashGateInner() {
           setClaseFormCtx({ cancelTo: "grid", editingId: id });
           setPhase("alumno_agregar_clase");
         }}
+        onAgregarTarea={(slot) => {
+          setTareaCtx({
+            clase: slot.clase,
+            tareaId: null,
+            entregaHoraInicio: slot.entregaHoraInicio,
+            entregaHoraFinal: slot.entregaHoraFinal,
+          });
+          setPhase("alumno_tarea_clase");
+        }}
+        onVerTarea={(slot) => {
+          setTareaCtx({
+            clase: slot.clase,
+            tareaId: slot.tareaId,
+            entregaHoraInicio: slot.entregaHoraInicio,
+            entregaHoraFinal: slot.entregaHoraFinal,
+          });
+          setPhase("alumno_tarea_clase");
+        }}
+      />
+    );
+  }
+
+  if (displayPhase === "alumno_tarea_clase") {
+    return (
+      <AlumnoTareaClaseScreenRN
+        ctx={tareaCtx}
+        onCancel={() => setPhase("alumno_horario_grid")}
       />
     );
   }
